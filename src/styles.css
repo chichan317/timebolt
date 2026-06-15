@@ -1110,6 +1110,50 @@ h2 {
   letter-spacing: 0.03em;
 }
 
+.tag-retainer {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: transparent;
+  margin-left: 6px;
+}
+
+/* segmented toggle (e.g. Hourly / Retainer billing mode) */
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  overflow: hidden;
+  align-self: flex-start;
+  max-width: 100%;
+}
+
+.segmented button {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border: none;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+}
+
+.segmented button + button {
+  border-left: 1px solid var(--border-strong);
+}
+
+.segmented button.seg-active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.field .field-hint {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
 /* ------------------------------ forms & fields ----------------------------- */
 
 input,

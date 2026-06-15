@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { clientUsage, db, deleteClientCascade, deleteProjectCascade, projectUsage, uid } from '../db';
 import type { Client, Project, Settings } from '../types';
 import { PROJECT_COLORS } from '../types';
-import { formatMoney } from '../lib/money';
+import { formatMoney, isRetainer } from '../lib/money';
 import { ConfirmDialog, EmptyState, Icon, Modal, useToast } from './ui';
 
 interface ClientsProps {
@@ -33,7 +33,11 @@ function ClientModal({
 }) {
   const toast = useToast();
   const [name, setName] = useState(client?.name ?? '');
+  const [mode, setMode] = useState<'hourly' | 'retainer'>(
+    isRetainer(client ?? undefined) ? 'retainer' : 'hourly',
+  );
   const [rate, setRate] = useState(client?.hourlyRate?.toString() ?? '');
+  const [retainer, setRetainer] = useState(client?.retainerAmount?.toString() ?? '');
   const [error, setError] = useState<string | null>(null);
 
   const save = async () => {
@@ -42,15 +46,28 @@ function ClientModal({
       setError('Give the client a name.');
       return;
     }
-    const parsedRate = rate.trim() === '' ? null : Number(rate);
-    if (parsedRate !== null && (!Number.isFinite(parsedRate) || parsedRate < 0)) {
-      setError('The rate must be a positive number (or empty).');
-      return;
+    let hourlyRate: number | null = null;
+    let retainerAmount: number | null = null;
+    if (mode === 'retainer') {
+      const parsed = retainer.trim() === '' ? null : Number(retainer);
+      if (parsed === null || !Number.isFinite(parsed) || parsed <= 0) {
+        setError('Enter the monthly retainer amount (a positive number).');
+        return;
+      }
+      retainerAmount = parsed;
+    } else {
+      const parsed = rate.trim() === '' ? null : Number(rate);
+      if (parsed !== null && (!Number.isFinite(parsed) || parsed < 0)) {
+        setError('The rate must be a positive number (or empty).');
+        return;
+      }
+      hourlyRate = parsed;
     }
     await db.clients.put({
       id: client?.id ?? uid(),
       name: trimmed,
-      hourlyRate: parsedRate,
+      hourlyRate,
+      retainerAmount,
       archived: client?.archived ?? false,
       createdAt: client?.createdAt ?? Date.now(),
     });
@@ -91,17 +108,54 @@ function ClientModal({
             autoFocus
           />
         </label>
-        <label className="field">
-          <span>Default hourly rate</span>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={rate}
-            onChange={(e) => setRate(e.target.value)}
-            placeholder="e.g. 120 (optional)"
-          />
-        </label>
+        <div className="field">
+          <span>Billing</span>
+          <div className="segmented">
+            <button
+              type="button"
+              className={mode === 'hourly' ? 'seg-active' : ''}
+              onClick={() => setMode('hourly')}
+            >
+              Hourly
+            </button>
+            <button
+              type="button"
+              className={mode === 'retainer' ? 'seg-active' : ''}
+              onClick={() => setMode('retainer')}
+            >
+              Retainer (fixed monthly)
+            </button>
+          </div>
+        </div>
+        {mode === 'hourly' ? (
+          <label className="field">
+            <span>Default hourly rate</span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={rate}
+              onChange={(e) => setRate(e.target.value)}
+              placeholder="e.g. 120 (optional)"
+            />
+          </label>
+        ) : (
+          <label className="field">
+            <span>Monthly retainer amount</span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={retainer}
+              onChange={(e) => setRetainer(e.target.value)}
+              placeholder="e.g. 2000"
+              autoFocus
+            />
+            <span className="field-hint">
+              Time is still tracked, but this client is billed this fixed amount — not by the hour.
+            </span>
+          </label>
+        )}
         {error && <p className="form-error">{error}</p>}
         <button type="submit" hidden />
       </form>
@@ -348,12 +402,15 @@ export function Clients({ settings, clients, projects }: ClientsProps) {
         <header className="client-head">
           <h2>
             {client.name}
+            {isRetainer(client) && <span className="tag tag-retainer">retainer</span>}
             {client.archived && <span className="tag">archived</span>}
           </h2>
           <span className="client-rate">
-            {client.hourlyRate !== null
-              ? `${formatMoney(client.hourlyRate, settings.currency)}/h default`
-              : 'no default rate'}
+            {isRetainer(client)
+              ? `${formatMoney(client.retainerAmount ?? 0, settings.currency)}/mo retainer`
+              : client.hourlyRate !== null
+                ? `${formatMoney(client.hourlyRate, settings.currency)}/h default`
+                : 'no default rate'}
           </span>
           <span className="row-actions">
             <button

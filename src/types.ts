@@ -7,6 +7,12 @@ export interface Client {
   name: string;
   /** Default hourly rate for this client's projects. Null = no rate. */
   hourlyRate: number | null;
+  /**
+   * Fixed monthly retainer amount. When set (> 0) the client is billed this
+   * flat amount and their work is tracked but never billed hourly — see
+   * `isRetainer`. Null = normal hourly client.
+   */
+  retainerAmount: number | null;
   archived: boolean;
   createdAt: number;
 }

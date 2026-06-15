@@ -1,11 +1,21 @@
 import type { Client, Project, Settings, TimeEntry } from '../types';
 import { roundMinutes } from './time';
 
-/** Effective hourly rate: project override, else client default, else 0. */
+/** A retainer client is billed a fixed monthly amount, not by the hour. */
+export function isRetainer(client: Client | undefined): boolean {
+  return client != null && client.retainerAmount != null && client.retainerAmount > 0;
+}
+
+/**
+ * Effective hourly rate: project override, else client default, else 0.
+ * Retainer clients never bill by the hour, so their rate is always 0 — this
+ * zeroes hourly money for them everywhere money flows through this function.
+ */
 export function resolveRate(
   project: Project | undefined,
   client: Client | undefined,
 ): number {
+  if (isRetainer(client)) return 0;
   return project?.hourlyRate ?? client?.hourlyRate ?? 0;
 }
 

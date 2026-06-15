@@ -11,7 +11,7 @@ import {
   startOfWeek,
   toDateKey,
 } from '../lib/time';
-import { billedMinutes, entryAmount, formatMoney, resolveRate, sumTotals } from '../lib/money';
+import { billedMinutes, entryAmount, formatMoney, isRetainer, resolveRate, sumTotals } from '../lib/money';
 import { useClientMap, useProjectMap } from '../hooks/useData';
 import { buildCsv, downloadFile } from '../lib/csv';
 import { EntryModal } from './EntryModal';
@@ -115,6 +115,7 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
   interface ClientGroup {
     clientId: string;
     clientName: string;
+    retainer: boolean;
     projects: GroupRow[];
     minutes: number;
     billableMinutes: number;
@@ -132,6 +133,7 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
         ({
           clientId,
           clientName: client?.name ?? 'Unknown client',
+          retainer: isRetainer(client),
           projects: [],
           minutes: 0,
           billableMinutes: 0,
@@ -170,6 +172,8 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
   }, [filtered, projectById, clientById, settings]);
 
   const hasGroups = clientGroups.length > 0;
+  const hasRetainerToBill = clientGroups.some((g) => g.retainer);
+  const canInvoice = totals.amount > 0 || hasRetainerToBill;
 
   /* -------------------------------- CSV export ------------------------------ */
 
@@ -220,7 +224,7 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
           <button
             className="btn btn-sm btn-icon"
             onClick={() => setShowInvoice(true)}
-            disabled={totals.amount <= 0}
+            disabled={!canInvoice}
             type="button"
           >
             <Icon name="invoice" size={15} /> Invoice
@@ -359,7 +363,13 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
                       </td>
                       <td className="num">{formatMinutes(p.minutes, settings.timeFormat)}</td>
                       <td className="num">{formatMinutes(p.billableMinutes, settings.timeFormat)}</td>
-                      <td className="num">{formatMoney(p.amount, settings.currency)}</td>
+                      <td className="num">
+                        {g.retainer ? (
+                          <span className="muted">retainer</span>
+                        ) : (
+                          formatMoney(p.amount, settings.currency)
+                        )}
+                      </td>
                     </tr>
                   ))}
                   <tr className="subtotal-row">
@@ -367,7 +377,13 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
                     <td>{g.clientName}</td>
                     <td className="num">{formatMinutes(g.minutes, settings.timeFormat)}</td>
                     <td className="num">{formatMinutes(g.billableMinutes, settings.timeFormat)}</td>
-                    <td className="num">{formatMoney(g.amount, settings.currency)}</td>
+                    <td className="num">
+                      {g.retainer ? (
+                        <span className="muted">retainer</span>
+                      ) : (
+                        formatMoney(g.amount, settings.currency)
+                      )}
+                    </td>
                   </tr>
                 </Fragment>
               ))}
@@ -414,7 +430,13 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
                       {formatMinutes(e.minutes, settings.timeFormat)}
                       {!e.billable && <span className="entry-nonbill"> NB</span>}
                     </td>
-                    <td className="num">{amount > 0 ? formatMoney(amount, settings.currency) : '—'}</td>
+                    <td className="num">
+                      {isRetainer(client)
+                        ? <span className="muted">retainer</span>
+                        : amount > 0
+                          ? formatMoney(amount, settings.currency)
+                          : '—'}
+                    </td>
                   </tr>
                 );
               })}

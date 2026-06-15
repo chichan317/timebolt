@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Client, Project, Settings, TimeEntry } from '../types';
-import { billedMinutes, entryAmount, formatMoney, resolveRate } from '../lib/money';
+import { billedMinutes, entryAmount, formatMoney, isRetainer, resolveRate } from '../lib/money';
 import { shortDateLabel } from '../lib/time';
 import { BoltIcon, Icon } from './ui';
 
@@ -26,6 +26,8 @@ interface LineItem {
 interface ClientSection {
   clientId: string;
   clientName: string;
+  /** Retainer clients are billed one fixed line instead of hourly items. */
+  retainer: boolean;
   lines: LineItem[];
   amount: number;
 }
@@ -62,21 +64,36 @@ export function Invoice({
 
   const sections = useMemo<ClientSection[]>(() => {
     const byClient = new Map<string, ClientSection>();
+    const ensure = (clientId: string, name: string, retainer: boolean): ClientSection => {
+      let section = byClient.get(clientId);
+      if (!section) {
+        section = { clientId, clientName: name, retainer, lines: [], amount: 0 };
+        byClient.set(clientId, section);
+      }
+      return section;
+    };
     for (const e of entries) {
-      if (!e.billable) continue;
       const project = projectById.get(e.projectId);
       const client = project ? clientById.get(project.clientId) : undefined;
+      const clientId = client?.id ?? 'unknown';
+
+      // Retainer clients: one fixed line of the monthly amount, billed once,
+      // regardless of how many entries fall in the range.
+      if (isRetainer(client)) {
+        const section = ensure(clientId, client?.name ?? 'Unknown client', true);
+        if (section.lines.length === 0) {
+          const amount = client?.retainerAmount ?? 0;
+          section.lines.push({ projectName: 'Monthly retainer', billedMin: 0, rate: 0, amount });
+          section.amount = amount;
+        }
+        continue;
+      }
+
+      // Hourly clients: bill billable entries by the hour.
+      if (!e.billable) continue;
       const amount = entryAmount(e, resolveRate(project, client), settings);
       if (amount <= 0) continue;
-      const clientId = client?.id ?? 'unknown';
-      const section =
-        byClient.get(clientId) ??
-        ({
-          clientId,
-          clientName: client?.name ?? 'Unknown client',
-          lines: [],
-          amount: 0,
-        } satisfies ClientSection);
+      const section = ensure(clientId, client?.name ?? 'Unknown client', false);
       const name = project?.name ?? 'Unknown project';
       let line = section.lines.find((l) => l.projectName === name);
       if (!line) {
@@ -86,10 +103,11 @@ export function Invoice({
       line.billedMin += billedMinutes(e, settings);
       line.amount += amount;
       section.amount += amount;
-      byClient.set(clientId, section);
     }
     const list = [...byClient.values()].sort((a, b) => a.clientName.localeCompare(b.clientName));
-    for (const s of list) s.lines.sort((a, b) => a.projectName.localeCompare(b.projectName));
+    for (const s of list) {
+      if (!s.retainer) s.lines.sort((a, b) => a.projectName.localeCompare(b.projectName));
+    }
     return list;
   }, [entries, projectById, clientById, settings]);
 
@@ -157,34 +175,51 @@ export function Invoice({
           sections.map((s) => (
             <section key={s.clientId} className="invoice-section">
               {sections.length > 1 && <h2 className="invoice-section-title">{s.clientName}</h2>}
-              <table className="invoice-table">
-                <thead>
-                  <tr>
-                    <th>Project</th>
-                    <th className="num">Hours</th>
-                    <th className="num">Rate</th>
-                    <th className="num">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {s.lines.map((l) => (
-                    <tr key={l.projectName}>
-                      <td>{l.projectName}</td>
-                      <td className="num">{hours(l.billedMin)}</td>
-                      <td className="num">{formatMoney(l.rate, settings.currency)}</td>
-                      <td className="num">{formatMoney(l.amount, settings.currency)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                {sections.length > 1 && (
-                  <tfoot>
+              {s.retainer ? (
+                <table className="invoice-table">
+                  <thead>
                     <tr>
-                      <td colSpan={3}>Subtotal — {s.clientName}</td>
+                      <th>Description</th>
+                      <th className="num">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Monthly retainer</td>
                       <td className="num">{formatMoney(s.amount, settings.currency)}</td>
                     </tr>
-                  </tfoot>
-                )}
-              </table>
+                  </tbody>
+                </table>
+              ) : (
+                <table className="invoice-table">
+                  <thead>
+                    <tr>
+                      <th>Project</th>
+                      <th className="num">Hours</th>
+                      <th className="num">Rate</th>
+                      <th className="num">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {s.lines.map((l) => (
+                      <tr key={l.projectName}>
+                        <td>{l.projectName}</td>
+                        <td className="num">{hours(l.billedMin)}</td>
+                        <td className="num">{formatMoney(l.rate, settings.currency)}</td>
+                        <td className="num">{formatMoney(l.amount, settings.currency)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  {sections.length > 1 && (
+                    <tfoot>
+                      <tr>
+                        <td colSpan={3}>Subtotal — {s.clientName}</td>
+                        <td className="num">{formatMoney(s.amount, settings.currency)}</td>
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
+              )}
             </section>
           ))
         )}

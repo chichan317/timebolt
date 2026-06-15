@@ -82,6 +82,7 @@ tests/time.test.ts     # Unit tests for time/money helpers
 ### Data model (see `src/types.ts`)
 - **Client** → has many **Project** → has many **TimeEntry**.
 - Rate resolution: a project's `hourlyRate` overrides its client's `hourlyRate`; `null` means inherit/none.
+- **Retainer clients:** a `Client.retainerAmount` (monthly fixed) marks a retainer client (`isRetainer` in `lib/money.ts`). Their work is still tracked, but `resolveRate` returns 0 for them so they never bill hourly anywhere. Reports/Dashboard show their time with a "retainer" tag instead of an amount and exclude them from hourly money totals; the **Invoice** bills them one fixed "Monthly retainer" line and includes it in the total. (Reports excludes the retainer, the invoice includes it — intentional: Reports = hourly earnings, invoice = the real bill.)
 - `TimeEntry.minutes` is whole minutes; `date` is a local `YYYY-MM-DD` string.
 - **Settings** is a single row (`id: 'settings'`); rounding/time-format/currency/week-start/theme.
 - Cascade deletes live in `db.ts` (`deleteClientCascade`, `deleteProjectCascade`) — always use them so no orphan entries remain.

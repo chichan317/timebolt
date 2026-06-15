@@ -1,5 +1,5 @@
 import { parseDuration, roundMinutes, startOfWeek, weekDays, toDateKey, formatMinutes } from '../src/lib/time';
-import { entryAmount, resolveRate } from '../src/lib/money';
+import { entryAmount, isRetainer, resolveRate } from '../src/lib/money';
 import type { Client, Project, Settings, TimeEntry } from '../src/types';
 import { DEFAULT_SETTINGS } from '../src/types';
 
@@ -61,7 +61,9 @@ eq(entryAmount(billable(50, true), 0, settings), 0, 'zero rate earns 0');
 eq(entryAmount(billable(60, true), 90, { ...DEFAULT_SETTINGS, rounding: 0 }), 90, 'no rounding: 1h @ $90 = 90');
 
 // --- resolveRate precedence: project overrides client ---
-const client: Client = { id: 'c', name: 'C', hourlyRate: 100, archived: false, createdAt: 0 };
+const client: Client = {
+  id: 'c', name: 'C', hourlyRate: 100, retainerAmount: null, archived: false, createdAt: 0,
+};
 const proj = (rate: number | null): Project => ({
   id: 'p', clientId: 'c', name: 'P', color: '#000', hourlyRate: rate,
   billableByDefault: true, archived: false, createdAt: 0,
@@ -69,5 +71,16 @@ const proj = (rate: number | null): Project => ({
 eq(resolveRate(proj(150), client), 150, 'rate: project override wins');
 eq(resolveRate(proj(null), client), 100, 'rate: inherits client when project null');
 eq(resolveRate(undefined, undefined), 0, 'rate: 0 when nothing set');
+
+// --- retainer clients: tracked but never billed hourly ---
+const retainerClient: Client = {
+  id: 'r', name: 'R', hourlyRate: 200, retainerAmount: 2000, archived: false, createdAt: 0,
+};
+eq(isRetainer(retainerClient), true, 'isRetainer: true when amount set');
+eq(isRetainer(client), false, 'isRetainer: false for hourly client');
+eq(isRetainer({ ...retainerClient, retainerAmount: 0 }), false, 'isRetainer: false when amount 0');
+eq(isRetainer(undefined), false, 'isRetainer: false for undefined');
+// rate is 0 even though hourlyRate is 200 and the project sets its own rate
+eq(resolveRate(proj(150), retainerClient), 0, 'retainer: rate forced to 0');
 
 console.log('done');

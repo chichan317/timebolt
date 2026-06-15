@@ -11,7 +11,7 @@ import {
   todayKey,
   addDays,
 } from '../lib/time';
-import { entryAmount, formatMoney, resolveRate, sumTotals } from '../lib/money';
+import { entryAmount, formatMoney, isRetainer, resolveRate, sumTotals } from '../lib/money';
 import { useClientMap, useProjectMap } from '../hooks/useData';
 
 interface DashboardProps {
@@ -119,8 +119,12 @@ export function Dashboard({ settings, clients, projects }: DashboardProps) {
                     </span>
                     <span className="bar-value">
                       {formatMinutes(slice.minutes, settings.timeFormat)}
-                      {slice.amount > 0 && (
-                        <span className="bar-amount"> {formatMoney(slice.amount, settings.currency)}</span>
+                      {isRetainer(slice.client) ? (
+                        <span className="tag tag-retainer">retainer</span>
+                      ) : (
+                        slice.amount > 0 && (
+                          <span className="bar-amount"> {formatMoney(slice.amount, settings.currency)}</span>
+                        )
                       )}
                     </span>
                   </div>
