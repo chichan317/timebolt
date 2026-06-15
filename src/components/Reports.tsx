@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { entriesBetween } from '../db';
 import type { Client, Project, Settings, TimeEntry } from '../types';
@@ -103,7 +103,6 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
   /* ------------------------- grouped client/project ------------------------ */
 
   interface GroupRow {
-    clientName: string;
     projectName: string;
     color: string;
     minutes: number;
@@ -111,30 +110,64 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
     amount: number;
   }
 
-  const groups = useMemo<GroupRow[]>(() => {
-    const map = new Map<string, GroupRow>();
+  interface ClientGroup {
+    clientId: string;
+    clientName: string;
+    projects: GroupRow[];
+    minutes: number;
+    billableMinutes: number;
+    amount: number;
+  }
+
+  const clientGroups = useMemo<ClientGroup[]>(() => {
+    const byClient = new Map<string, ClientGroup>();
     for (const e of filtered) {
       const project = projectById.get(e.projectId);
       const client = project ? clientById.get(project.clientId) : undefined;
-      const key = e.projectId;
-      const row = map.get(key) ?? {
-        clientName: client?.name ?? 'Unknown client',
-        projectName: project?.name ?? 'Unknown project',
-        color: project?.color ?? 'var(--border)',
-        minutes: 0,
-        billableMinutes: 0,
-        amount: 0,
-      };
+      const clientId = client?.id ?? 'unknown';
+      const group =
+        byClient.get(clientId) ??
+        ({
+          clientId,
+          clientName: client?.name ?? 'Unknown client',
+          projects: [],
+          minutes: 0,
+          billableMinutes: 0,
+          amount: 0,
+        } satisfies ClientGroup);
+
+      let row = group.projects.find((r) => r.projectName === (project?.name ?? 'Unknown project'));
+      if (!row) {
+        row = {
+          projectName: project?.name ?? 'Unknown project',
+          color: project?.color ?? 'var(--border)',
+          minutes: 0,
+          billableMinutes: 0,
+          amount: 0,
+        };
+        group.projects.push(row);
+      }
+      const amount = entryAmount(e, resolveRate(project, client), settings);
       row.minutes += e.minutes;
-      if (e.billable) row.billableMinutes += e.minutes;
-      row.amount += entryAmount(e, resolveRate(project, client), settings);
-      map.set(key, row);
+      group.minutes += e.minutes;
+      if (e.billable) {
+        row.billableMinutes += e.minutes;
+        group.billableMinutes += e.minutes;
+      }
+      row.amount += amount;
+      group.amount += amount;
+      byClient.set(clientId, group);
     }
-    return [...map.values()].sort(
-      (a, b) =>
-        a.clientName.localeCompare(b.clientName) || a.projectName.localeCompare(b.projectName),
+    const groups = [...byClient.values()].sort((a, b) =>
+      a.clientName.localeCompare(b.clientName),
     );
+    for (const g of groups) {
+      g.projects.sort((a, b) => a.projectName.localeCompare(b.projectName));
+    }
+    return groups;
   }, [filtered, projectById, clientById, settings]);
+
+  const hasGroups = clientGroups.length > 0;
 
   /* -------------------------------- CSV export ------------------------------ */
 
@@ -292,7 +325,7 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
         </div>
       </div>
 
-      {groups.length > 0 && (
+      {hasGroups && (
         <section className="panel">
           <h2>By client &amp; project</h2>
           <table className="data-table">
@@ -306,17 +339,34 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
               </tr>
             </thead>
             <tbody>
-              {groups.map((g) => (
-                <tr key={`${g.clientName}-${g.projectName}`}>
-                  <td>{g.clientName}</td>
-                  <td>
-                    <span className="bar-dot" style={{ background: g.color }} /> {g.projectName}
-                  </td>
-                  <td className="num">{formatMinutes(g.minutes, settings.timeFormat)}</td>
-                  <td className="num">{formatMinutes(g.billableMinutes, settings.timeFormat)}</td>
-                  <td className="num">{formatMoney(g.amount, settings.currency)}</td>
-                </tr>
+              {clientGroups.map((g) => (
+                <Fragment key={g.clientId}>
+                  {g.projects.map((p, i) => (
+                    <tr key={`${g.clientId}-${p.projectName}`}>
+                      <td>{i === 0 ? g.clientName : ''}</td>
+                      <td>
+                        <span className="bar-dot" style={{ background: p.color }} /> {p.projectName}
+                      </td>
+                      <td className="num">{formatMinutes(p.minutes, settings.timeFormat)}</td>
+                      <td className="num">{formatMinutes(p.billableMinutes, settings.timeFormat)}</td>
+                      <td className="num">{formatMoney(p.amount, settings.currency)}</td>
+                    </tr>
+                  ))}
+                  <tr className="subtotal-row">
+                    <td>Subtotal</td>
+                    <td>{g.clientName}</td>
+                    <td className="num">{formatMinutes(g.minutes, settings.timeFormat)}</td>
+                    <td className="num">{formatMinutes(g.billableMinutes, settings.timeFormat)}</td>
+                    <td className="num">{formatMoney(g.amount, settings.currency)}</td>
+                  </tr>
+                </Fragment>
               ))}
+              <tr className="total-row">
+                <td colSpan={2}>Total</td>
+                <td className="num">{formatMinutes(totals.minutes, settings.timeFormat)}</td>
+                <td className="num">{formatMinutes(totals.billableMinutes, settings.timeFormat)}</td>
+                <td className="num">{formatMoney(totals.amount, settings.currency)}</td>
+              </tr>
             </tbody>
           </table>
         </section>
