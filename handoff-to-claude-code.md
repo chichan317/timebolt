@@ -110,7 +110,7 @@ The UI was redesigned to a **refined glassmorphism** style while keeping the ori
 - **Light + dark** are both defined (`:root` and `[data-theme='dark']`). Theme is applied in `App.tsx` from `Settings.theme` (`system`/`light`/`dark`). Always test both.
 - **Mobile**: below 760px the floating sidebar collapses into a bottom nav bar (see the media queries at the bottom of `styles.css`). Test at 375px.
 
-There is a standalone reference mockup at **`dashboard-preview.html`** (open in a browser) showing the approved Dashboard look with a light/dark toggle. It's only a reference — the real styles live in `src/styles.css`. Safe to delete.
+There is a standalone reference mockup at **`docs/dashboard-preview.html`** (open in a browser) showing the approved Dashboard look with a light/dark toggle. It's only a reference — the real styles live in `src/styles.css`. Safe to delete.
 
 ---
 
