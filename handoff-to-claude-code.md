@@ -116,14 +116,16 @@ There is a standalone reference mockup at **`docs/dashboard-preview.html`** (ope
 
 ## 7. Status & suggested next steps
 
-**Done recently:** full visual redesign (glassmorphism + indigo) applied across all 5 pages; emoji/unicode glyphs replaced with a consistent SVG icon set; build + typecheck pass.
+**Done recently:** full visual redesign (glassmorphism + indigo) applied across all 5 pages; emoji/unicode glyphs replaced with a consistent SVG icon set; build + typecheck pass. Project moved into a git repo and cleaned up (removed leftover Vite temp artifacts + stale `dist/`; reference mockup moved to `docs/`).
+
+**Done in the Claude Code continuation:**
+1. ✅ Text `+` on "New entry" / "New client" / "Add project" buttons replaced with the `plus` SVG icon (`.btn-icon`).
+2. ✅ Reports: per-client **subtotal** rows + a grand **total** row in the "By client & project" table. (Date-range presets and the grouped summary already existed — the earlier note here was stale.)
+4. ✅ Invoicing export: a **printable invoice** view (`components/Invoice.tsx`) opened from Reports. Built from the active filters, grouped by client/project with billed hours, rate, amount, subtotals and total. Uses `window.print()` → browser "Save as PDF" (no PDF dependency). Print styles live in the `@media print` block at the end of `styles.css`. The invoice sheet is intentionally paper-styled (fixed light colours) — a documented exception to the tokens-only rule.
+6. ✅ Added rounding edge-case tests plus `entryAmount` / `resolveRate` coverage in `tests/time.test.ts`.
 
 **Open / nice-to-have ideas (not started):**
-1. Swap the remaining text `+` on "New client" / "Add project" buttons for the `plus` SVG icon (consistency).
-2. Reports: add date-range presets (this week / month / last month / custom) and a per-client subtotal row.
 3. Dashboard: optional donut chart of time-by-project (keep it accessible — legend + values, not color-only).
-4. Invoicing export: a PDF/printable invoice view in addition to CSV.
 5. Keyboard shortcuts for the timer (start/stop/pause).
-6. Add a few more tests around `money.ts` rounding edge cases.
 
 **Before finishing any task:** run `npm run typecheck` (and `npm test` / `npm run build` if the platform binaries are installed), and visually check both light and dark themes plus mobile width.
