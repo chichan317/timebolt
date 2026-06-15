@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TimeBolt — Dashboard redesign preview</title>
+<style>
+/* ===================== Refined glassmorphism + indigo ===================== */
+:root {
+  --bg: #eef1f8;
+  /* soft tints so the glass has something to frost over */
+  --bg-blob-1: rgba(99, 102, 241, 0.20);
+  --bg-blob-2: rgba(245, 158, 11, 0.13);
+  --bg-blob-3: rgba(56, 189, 248, 0.14);
+
+  --glass: rgba(255, 255, 255, 0.55);
+  --glass-strong: rgba(255, 255, 255, 0.66);
+  --glass-border: rgba(255, 255, 255, 0.55);
+  --glass-shadow: 0 1px 2px rgba(31, 38, 79, 0.05), 0 8px 26px rgba(31, 38, 79, 0.09);
+
+  /* DATA stays on solid, high-contrast surfaces — not frosted */
+  --surface-solid: #ffffff;
+  --surface-2: #eef0f6;
+
+  --text: #1a1d2b;
+  --muted: #646b80;
+  --border: rgba(31, 38, 79, 0.09);
+  --accent: #4f46e5;
+  --accent-2: #6366f1;
+  --accent-soft: rgba(99, 102, 241, 0.10);
+  --accent-contrast: #ffffff;
+  --ok: #15a34a;
+  --bolt: #f59e0b;
+  --radius: 14px;
+  --radius-sm: 10px;
+  color-scheme: light;
+}
+[data-theme='dark'] {
+  --bg: #0c0e16;
+  --bg-blob-1: rgba(99, 102, 241, 0.24);
+  --bg-blob-2: rgba(245, 158, 11, 0.10);
+  --bg-blob-3: rgba(56, 189, 248, 0.13);
+
+  --glass: rgba(24, 28, 42, 0.50);
+  --glass-strong: rgba(26, 31, 46, 0.62);
+  --glass-border: rgba(255, 255, 255, 0.10);
+  --glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 26px rgba(0, 0, 0, 0.36);
+
+  --surface-solid: #161a28;
+  --surface-2: #20253580;
+
+  --text: #eceefb;
+  --muted: #9aa3be;
+  --border: rgba(255, 255, 255, 0.08);
+  --accent: #818cf8;
+  --accent-2: #a5b4fc;
+  --accent-soft: rgba(129, 140, 248, 0.14);
+  --accent-contrast: #0c0e16;
+  --ok: #4ade80;
+  --bolt: #fbbf24;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+  overflow-x: hidden;
+}
+/* soft colour blobs that the glass panels frost over */
+body::before, body::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(90px);
+  z-index: 0;
+  pointer-events: none;
+}
+body::before {
+  width: 640px; height: 640px;
+  top: -260px; left: -200px;
+  background: radial-gradient(circle at 30% 30%, var(--bg-blob-1), transparent 70%);
+}
+body::after {
+  width: 600px; height: 600px;
+  bottom: -300px; right: -180px;
+  background: radial-gradient(circle at 70% 70%, var(--bg-blob-2), transparent 70%);
+}
+.blob3 {
+  position: fixed; width: 480px; height: 480px;
+  top: 35%; right: 18%;
+  border-radius: 50%; filter: blur(110px); z-index: 0; pointer-events: none;
+  background: radial-gradient(circle, var(--bg-blob-3), transparent 70%);
+}
+
+h1 { font-size: 21px; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
+h2 {
+  font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--muted); margin: 0 0 14px;
+}
+.muted { color: var(--muted); }
+.small { font-size: 12.5px; }
+
+/* ------------------------------- layout ------------------------------- */
+.app { display: flex; height: 100vh; position: relative; z-index: 1; }
+
+.sidebar {
+  width: 212px; flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 22px;
+  padding: 20px 14px;
+  margin: 12px 0 12px 12px;
+  border-radius: 18px;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(24px) saturate(155%);
+  backdrop-filter: blur(24px) saturate(155%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 8px; font-size: 17px; font-weight: 700; letter-spacing: -0.02em;
+}
+.brand-bolt {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 9px;
+  color: var(--bolt);
+  background: var(--accent-soft);
+}
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border: none; border-radius: 10px;
+  background: transparent; color: var(--muted);
+  font: inherit; font-weight: 550; cursor: pointer; text-align: left;
+  transition: background 160ms ease, color 160ms ease;
+}
+.nav-item:hover { background: var(--accent-soft); color: var(--text); }
+.nav-active, .nav-active:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 650;
+}
+.nav-icon { width: 18px; height: 18px; display: inline-flex; }
+.sidebar-foot { margin-top: auto; padding: 0 8px; }
+
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; padding: 12px 12px 12px 0; gap: 12px; }
+
+.topbar {
+  border-radius: 14px;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(24px) saturate(155%);
+  backdrop-filter: blur(24px) saturate(155%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  padding: 10px 16px;
+}
+.timer-bar { display: flex; align-items: center; gap: 12px; min-height: 40px; }
+.timer-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px rgba(21,163,74,.18); }
+.timer-project { font-weight: 700; }
+.timer-note { color: var(--muted); }
+.spacer { flex: 1; }
+.timer-billable { color: var(--ok); font-weight: 700; display: inline-flex; gap: 5px; align-items: center; }
+.timer-clock { font-variant-numeric: tabular-nums; font-weight: 800; font-size: 18px; letter-spacing: -0.01em; }
+.btn {
+  font: inherit; font-weight: 600; padding: 9px 15px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--surface-solid); color: var(--text);
+  cursor: pointer; transition: filter 140ms ease; white-space: nowrap;
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: transparent; color: #fff;
+}
+.btn-primary:hover { filter: brightness(1.07); }
+.btn-icon { display: inline-flex; align-items: center; gap: 7px; }
+
+.content { flex: 1; overflow-y: auto; }
+.page { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; padding: 6px 8px 32px; }
+.page-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.page-sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+/* ----------------------------- stat cards ----------------------------- */
+.stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.stat-card {
+  position: relative; overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  padding: 20px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.stat-label { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 650; }
+.stat-hours { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; margin-top: 2px; }
+.stat-amount { color: var(--ok); font-weight: 650; font-variant-numeric: tabular-nums; font-size: 14.5px; }
+.stat-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+/* ----------------------------- panels ----------------------------- */
+.dash-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.panel {
+  border-radius: var(--radius);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  padding: 22px;
+}
+.bar-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 18px; }
+.recent-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.bar-row { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
+.bar-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.bar-name { flex: 1; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-client { color: var(--muted); font-weight: 400; }
+.bar-value { font-variant-numeric: tabular-nums; font-weight: 700; }
+.bar-amount { color: var(--ok); font-size: 12.5px; margin-left: 7px; }
+.bar-track { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 99px; transition: width 600ms cubic-bezier(.2,.8,.2,1); }
+
+.recent-list li {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 2px;
+  border-bottom: 1px solid var(--border);
+}
+.recent-list li:last-child { border-bottom: none; }
+.recent-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; }
+.recent-note { color: var(--muted); font-weight: 400; }
+.recent-date { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.recent-time { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 46px; text-align: right; }
+
+/* ----------------------------- theme toggle (preview only) ----------------------------- */
+.preview-toggle {
+  position: fixed; top: 16px; right: 18px; z-index: 50;
+  display: flex; gap: 6px; padding: 5px;
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  border: 1px solid var(--glass-border); border-radius: 12px; box-shadow: var(--glass-shadow);
+}
+.preview-toggle button {
+  border: none; background: transparent; color: var(--muted);
+  font: inherit; font-weight: 650; font-size: 12.5px; padding: 6px 12px; border-radius: 8px; cursor: pointer;
+}
+.preview-toggle button.on { background: var(--accent); color: #fff; }
+
+@media (max-width: 860px) {
+  .dash-columns { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="blob3"></div>
+
+<div class="preview-toggle">
+  <button id="lightBtn" class="on" onclick="setTheme('light')">Light</button>
+  <button id="darkBtn" onclick="setTheme('dark')">Dark</button>
+</div>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-bolt">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M13 2 4.5 13.5h5L9.5 22 19 9.5h-5.5z"/></svg>
+      </span>
+      <span>TimeBolt</span>
+    </div>
+    <nav class="nav">
+      <button class="nav-item nav-active">
+        <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 4v16"/></svg></span>
+        <span>Week</span>
+      </button>
+      <button class="nav-item">
+        <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></span>
+        <span>Dashboard</span>
+      </button>
+      <button class="nav-item">
+        <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>
+        <span>Reports</span>
+      </button>
+      <button class="nav-item">
+        <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg></span>
+        <span>Clients</span>
+      </button>
+      <button class="nav-item">
+        <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+        <span>Settings</span>
+      </button>
+    </nav>
+    <div class="sidebar-foot">
+      <span class="muted small">Local-first · your data stays in this browser</span>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <header class="topbar">
+      <div class="timer-bar">
+        <span class="timer-dot"></span>
+        <span class="timer-project">Acme Corp · Website redesign</span>
+        <span class="timer-note">— Homepage hero section</span>
+        <span class="spacer"></span>
+        <span class="timer-billable">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          Billable
+        </span>
+        <span class="timer-clock">1:24:07</span>
+        <button class="btn btn-primary btn-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+          Stop
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+      <div class="page">
+        <div class="page-toolbar">
+          <div>
+            <h1>Dashboard</h1>
+            <div class="page-sub">Monday, 15 June 2026</div>
+          </div>
+          <button class="btn btn-primary btn-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            Add time
+          </button>
+        </div>
+
+        <!-- Stat cards -->
+        <div class="stat-cards">
+          <div class="stat-card is-today">
+            <span class="stat-label">Today</span>
+            <span class="stat-hours">5h 40m</span>
+            <span class="stat-amount">$566.00</span>
+            <span class="stat-sub">5h 10m billable</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">This week</span>
+            <span class="stat-hours">28h 15m</span>
+            <span class="stat-amount">$2,847.50</span>
+            <span class="stat-sub">25h 45m billable</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">This month</span>
+            <span class="stat-hours">96h 30m</span>
+            <span class="stat-amount">$9,612.00</span>
+            <span class="stat-sub">88h 00m billable</span>
+          </div>
+        </div>
+
+        <!-- Two columns -->
+        <div class="dash-columns">
+          <section class="panel">
+            <h2>This week by project</h2>
+            <ul class="bar-list">
+              <li>
+                <div class="bar-row">
+                  <span class="bar-dot" style="background:#4f46e5"></span>
+                  <span class="bar-name">Website redesign <span class="bar-client">· Acme Corp</span></span>
+                  <span class="bar-value">12h 30m<span class="bar-amount">$1,250</span></span>
+                </div>
+                <div class="bar-track"><div class="bar-fill" style="width:100%;background:#4f46e5"></div></div>
+              </li>
+              <li>
+                <div class="bar-row">
+                  <span class="bar-dot" style="background:#0ea5e9"></span>
+                  <span class="bar-name">Mobile app <span class="bar-client">· Northwind</span></span>
+                  <span class="bar-value">7h 45m<span class="bar-amount">$852</span></span>
+                </div>
+                <div class="bar-track"><div class="bar-fill" style="width:62%;background:#0ea5e9"></div></div>
+              </li>
+              <li>
+                <div class="bar-row">
+                  <span class="bar-dot" style="background:#f59e0b"></span>
+                  <span class="bar-name">Brand guidelines <span class="bar-client">· Acme Corp</span></span>
+                  <span class="bar-value">5h 00m<span class="bar-amount">$500</span></span>
+                </div>
+                <div class="bar-track"><div class="bar-fill" style="width:40%;background:#f59e0b"></div></div>
+              </li>
+              <li>
+                <div class="bar-row">
+                  <span class="bar-dot" style="background:#10b981"></span>
+                  <span class="bar-name">Support retainer <span class="bar-client">· Globex</span></span>
+                  <span class="bar-value">3h 00m<span class="bar-amount">$295</span></span>
+                </div>
+                <div class="bar-track"><div class="bar-fill" style="width:24%;background:#10b981"></div></div>
+              </li>
+            </ul>
+          </section>
+
+          <section class="panel">
+            <h2>Recent entries</h2>
+            <ul class="recent-list">
+              <li>
+                <span class="bar-dot" style="background:#4f46e5"></span>
+                <span class="recent-name">Website redesign <span class="recent-note">— Homepage hero</span></span>
+                <span class="recent-date">06-15</span>
+                <span class="recent-time">1h 24m</span>
+              </li>
+              <li>
+                <span class="bar-dot" style="background:#0ea5e9"></span>
+                <span class="recent-name">Mobile app <span class="recent-note">— Login flow</span></span>
+                <span class="recent-date">06-15</span>
+                <span class="recent-time">2h 10m</span>
+              </li>
+              <li>
+                <span class="bar-dot" style="background:#f59e0b"></span>
+                <span class="recent-name">Brand guidelines <span class="recent-note">— Logo variants</span></span>
+                <span class="recent-date">06-14</span>
+                <span class="recent-time">3h 00m</span>
+              </li>
+              <li>
+                <span class="bar-dot" style="background:#10b981"></span>
+                <span class="recent-name">Support retainer <span class="recent-note">— Bug triage</span></span>
+                <span class="recent-date">06-14</span>
+                <span class="recent-time">1h 15m</span>
+              </li>
+              <li>
+                <span class="bar-dot" style="background:#4f46e5"></span>
+                <span class="recent-name">Website redesign <span class="recent-note">— Pricing page</span></span>
+                <span class="recent-date">06-13</span>
+                <span class="recent-time">2h 45m</span>
+              </li>
+            </ul>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+function setTheme(t) {
+  document.documentElement.dataset.theme = t;
+  document.getElementById('lightBtn').classList.toggle('on', t === 'light');
+  document.getElementById('darkBtn').classList.toggle('on', t === 'dark');
+}
+</script>
+</body>
+</html>
