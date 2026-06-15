@@ -380,11 +380,11 @@ export function Clients({ settings, clients, projects }: ClientsProps) {
           {!client.archived && (
             <li>
               <button
-                className="link-btn"
+                className="link-btn btn-icon"
                 onClick={() => setModal({ kind: 'project', project: null, clientId: client.id })}
                 type="button"
               >
-                + Add project
+                <Icon name="plus" size={13} /> Add project
               </button>
             </li>
           )}
@@ -404,11 +404,11 @@ export function Clients({ settings, clients, projects }: ClientsProps) {
             </button>
           ) : null}
           <button
-            className="btn btn-primary btn-sm"
+            className="btn btn-primary btn-sm btn-icon"
             onClick={() => setModal({ kind: 'client', client: null })}
             type="button"
           >
-            + New client
+            <Icon name="plus" size={14} /> New client
           </button>
         </div>
       </div>
@@ -420,11 +420,11 @@ export function Clients({ settings, clients, projects }: ClientsProps) {
           message="Clients hold your projects and default hourly rates. Add your first one to start tracking."
           action={
             <button
-              className="btn btn-primary"
+              className="btn btn-primary btn-icon"
               onClick={() => setModal({ kind: 'client', client: null })}
               type="button"
             >
-              + New client
+              <Icon name="plus" size={15} /> New client
             </button>
           }
         />

@@ -14,7 +14,7 @@ import {
 import { entryAmount, formatMoney, resolveRate, sumTotals } from '../lib/money';
 import { useClientMap, useProjectMap } from '../hooks/useData';
 import { EntryModal } from './EntryModal';
-import { BoltIcon, ConfirmDialog, EmptyState, useToast } from './ui';
+import { BoltIcon, ConfirmDialog, EmptyState, Icon, useToast } from './ui';
 
 interface WeekViewProps {
   settings: Settings;
@@ -129,11 +129,11 @@ export function WeekView({ settings, clients, projects, onGoToClients }: WeekVie
             Copy last week
           </button>
           <button
-            className="btn btn-primary btn-sm"
+            className="btn btn-primary btn-sm btn-icon"
             onClick={() => setModal({ kind: 'new', date: toDateKey(new Date()) })}
             type="button"
           >
-            + New entry
+            <Icon name="plus" size={14} /> New entry
           </button>
         </div>
       </div>
