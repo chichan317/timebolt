@@ -177,7 +177,8 @@ export type IconName =
   | 'play'
   | 'pause'
   | 'x'
-  | 'plus';
+  | 'plus'
+  | 'invoice';
 
 const ICON_PATHS: Record<IconName, ReactNode> = {
   week: (
@@ -215,6 +216,12 @@ const ICON_PATHS: Record<IconName, ReactNode> = {
   ),
   x: <path d="M18 6 6 18M6 6l12 12" />,
   plus: <path d="M12 5v14M5 12h14" />,
+  invoice: (
+    <>
+      <path d="M6 2h9l3 3v15l-2.5-1.5L13 20l-2.5-1.5L8 20l-2.5-1.5L4 20V4a2 2 0 0 1 2-2z" />
+      <path d="M8 7h6M8 11h6M8 15h4" />
+    </>
+  ),
 };
 
 /** Filled icons (play/pause use fill, the rest use stroke). */

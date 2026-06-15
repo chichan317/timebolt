@@ -15,7 +15,8 @@ import { billedMinutes, entryAmount, formatMoney, resolveRate, sumTotals } from 
 import { useClientMap, useProjectMap } from '../hooks/useData';
 import { buildCsv, downloadFile } from '../lib/csv';
 import { EntryModal } from './EntryModal';
-import { useToast } from './ui';
+import { Invoice } from './Invoice';
+import { Icon, useToast } from './ui';
 
 interface ReportsProps {
   settings: Settings;
@@ -63,6 +64,7 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
   const [projectFilter, setProjectFilter] = useState('');
   const [billableFilter, setBillableFilter] = useState<BillableFilter>('all');
   const [editing, setEditing] = useState<TimeEntry | null>(null);
+  const [showInvoice, setShowInvoice] = useState(false);
 
   const projectById = useProjectMap(projects);
   const clientById = useClientMap(clients);
@@ -215,6 +217,14 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
       <div className="page-toolbar">
         <h1>Reports</h1>
         <div className="toolbar-actions">
+          <button
+            className="btn btn-sm btn-icon"
+            onClick={() => setShowInvoice(true)}
+            disabled={totals.amount <= 0}
+            type="button"
+          >
+            <Icon name="invoice" size={15} /> Invoice
+          </button>
           <button
             className="btn btn-primary btn-sm"
             onClick={exportCsv}
@@ -419,6 +429,18 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
           clients={clients}
           projects={projects}
           onClose={() => setEditing(null)}
+        />
+      )}
+
+      {showInvoice && (
+        <Invoice
+          settings={settings}
+          entries={filtered}
+          projectById={projectById}
+          clientById={clientById}
+          from={from}
+          to={to}
+          onClose={() => setShowInvoice(false)}
         />
       )}
     </div>
