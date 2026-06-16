@@ -130,9 +130,15 @@ There is a standalone reference mockup at **`docs/dashboard-preview.html`** (ope
 2. ✅ Reports: per-client **subtotal** rows + a grand **total** row in the "By client & project" table. (Date-range presets and the grouped summary already existed — the earlier note here was stale.)
 4. ✅ Invoicing export: a **printable invoice** view (`components/Invoice.tsx`) opened from Reports. Built from the active filters, grouped by client/project with billed hours, rate, amount, subtotals and total. Uses `window.print()` → browser "Save as PDF" (no PDF dependency). Print styles live in the `@media print` block at the end of `styles.css`. The invoice sheet is intentionally paper-styled (fixed light colours) — a documented exception to the tokens-only rule.
 6. ✅ Added rounding edge-case tests plus `entryAmount` / `resolveRate` coverage in `tests/time.test.ts`.
+7. ✅ **Retainer clients** (`Client.retainerAmount`) — see the data-model note above.
+8. ✅ **Cross-device sync** (opt-in, self-hosted PHP) — see the sync note above. Live in use.
+9. ✅ **Timer keyboard shortcuts** — Space (start/pause/resume) and S (stop & save), guarded against typing/modals (`TimerBar`).
+10. ✅ **Dashboard donut** — accessible SVG donut of time-by-project (`components/Donut.tsx`) with a percentage legend.
+11. ✅ **Common-work templates** — `WorkTemplate` + Dexie v2 `templates` store; "Save as template" in `EntryModal`; a "Quick add to today" chip row in `WeekView`. Included in backup + sync.
+12. ✅ **Drag-and-drop** in `WeekView` — drag an entry to another day (move), Alt to duplicate. Desktop/mouse only.
 
 **Open / nice-to-have ideas (not started):**
-3. Dashboard: optional donut chart of time-by-project (keep it accessible — legend + values, not color-only).
-5. Keyboard shortcuts for the timer (start/stop/pause).
+- Dashboard extras the owner deferred: week-over-week comparison, goals/streaks, daily activity mini-chart.
+- Touch drag-and-drop for the Week view (HTML5 DnD is mouse-only).
 
 **Before finishing any task:** run `npm run typecheck` (and `npm test` / `npm run build` if the platform binaries are installed), and visually check both light and dark themes plus mobile width.

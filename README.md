@@ -6,13 +6,14 @@ Inspired by the best parts of Harvest, Toggl Track and Clockify: a color-coded w
 
 ## Features
 
-- **Weekly view as the home screen** — seven color-coded day columns, click any entry to edit, `+` on any day to add time, 5-day/7-day toggle, and a "copy last week" shortcut for recurring schedules.
-- **Timer** — start/pause/stop from the always-visible top bar. The running time is saved to localStorage, so closing the tab or reloading never loses it. The tab title shows the running clock.
+- **Weekly view as the home screen** — seven color-coded day columns, click any entry to edit, `+` on any day to add time, drag a card to another day to move it (hold Alt to duplicate), 5-day/7-day toggle, and a "copy last week" shortcut for recurring schedules.
+- **Timer** — start/pause/stop from the always-visible top bar, with keyboard shortcuts (Space to start/pause/resume, S to stop & save). The running time is saved to localStorage, so closing the tab or reloading never loses it. The tab title shows the running clock.
+- **Quick-add templates** — save a common piece of work (project + note + duration) as a template, then add it to today in one click from the Week page.
 - **Manual entry** — flexible duration parsing: `1:30`, `1.5h`, `90m`, `1h 30m`, `8` (hours) or `45` (minutes) all work.
 - **Clients & projects** — projects belong to clients, each with optional hourly rates (project rate overrides client rate). Archive anything to hide it without losing history; deletion always warns about affected entries.
 - **Retainer clients** — bill a client a fixed monthly amount instead of by the hour. Their time is still tracked (for your own insight) but shown with a "retainer" tag rather than an hourly amount; invoices bill the flat monthly fee.
 - **Billable tracking** — per-entry billable flag with per-project defaults; billable amounts shown on entries, day totals, dashboard and reports.
-- **Dashboard** — today / this week / this month totals with billable amounts, a per-project breakdown, and recent entries.
+- **Dashboard** — today / this week / this month totals with billable amounts, an accessible donut chart of this week's time by project, a per-project breakdown, and recent entries.
 - **Reports** — filter by date range (presets or custom), client, project and billable status; grouped client/project summary plus a detailed entry list.
 - **CSV export** — invoicing-ready columns: date, client, project, note, billable, exact hours, rounded billed hours, rate, amount, currency.
 - **Printable invoice** — generate a clean invoice from the current report filters (billable line items grouped by client/project with hours, rate, amount, subtotals and total) and save it as a PDF via the browser's print dialog — no extra tools.
