@@ -1,12 +1,13 @@
-# Block direct web access to the stored data file(s). Only timebolt-sync.php
-# (which checks the token) may read them.
-<FilesMatch "\.store\.json$">
+# OPTIONAL extra protection. The data file already self-protects (it's a .php
+# file starting with "<?php exit;"), so uploading this .htaccess is not required
+# — it's just defense in depth on Apache hosts like SiteGround.
+<FilesMatch "\.store\.php$">
   Require all denied
 </FilesMatch>
 
 # Fallback for older Apache (2.2).
 <IfModule !mod_authz_core.c>
-  <FilesMatch "\.store\.json$">
+  <FilesMatch "\.store\.php$">
     Order allow,deny
     Deny from all
   </FilesMatch>

@@ -18,8 +18,14 @@
 /** CHANGE THIS to a long random secret, e.g. 30+ random characters. */
 const TIMEBOLT_TOKEN = 'CHANGE-ME-to-a-long-random-secret';
 
-/** Data file lives beside this script. The .htaccess blocks direct access. */
-const DATA_FILE = __DIR__ . '/timebolt-data.store.json';
+/**
+ * Data file lives beside this script. It is given a `.php` extension and a
+ * leading `<?php exit;` guard, so if anyone opens it directly in a browser PHP
+ * runs the guard and returns nothing — the data is never served. (The optional
+ * .htaccess is extra defense, but this works even where .htaccess is ignored.)
+ */
+const DATA_FILE = __DIR__ . '/timebolt-data.store.php';
+const DATA_GUARD = "<?php exit; ?>\n";
 
 // ---- CORS -----------------------------------------------------------------
 // The bearer token (not the origin) is what secures the data, so origin is
@@ -63,6 +69,11 @@ function read_doc() {
         return ['version' => 0, 'updatedAt' => 0, 'payload' => null];
     }
     $raw = file_get_contents(DATA_FILE);
+    // Strip the leading PHP guard line (see DATA_GUARD) before parsing.
+    if (strncmp($raw, '<?php', 5) === 0) {
+        $nl = strpos($raw, "\n");
+        $raw = $nl === false ? '' : substr($raw, $nl + 1);
+    }
     $doc = json_decode($raw, true);
     if (!is_array($doc) || !isset($doc['version'])) {
         return ['version' => 0, 'updatedAt' => 0, 'payload' => null];
@@ -76,7 +87,7 @@ function write_doc($doc) {
     flock($fp, LOCK_EX);
     ftruncate($fp, 0);
     rewind($fp);
-    fwrite($fp, json_encode($doc));
+    fwrite($fp, DATA_GUARD . json_encode($doc));
     fflush($fp);
     flock($fp, LOCK_UN);
     fclose($fp);

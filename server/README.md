@@ -46,10 +46,9 @@ Save the file.
 ## Step 3 — Upload to SiteGround
 1. Log in to SiteGround → **Site Tools** → **Site** → **File Manager**.
 2. Open the **`public_html`** folder (that's your website's main folder).
-3. Upload **both** files from this `server/` folder:
-   - `timebolt-sync.php`
-   - `.htaccess`  *(if a `.htaccess` already exists there, open it and paste in
-     the contents of ours instead of overwriting — ask if unsure.)*
+3. Upload the **one** file: `timebolt-sync.php`.
+   *(The `.htaccess` in this folder is optional extra protection — the data
+   file already protects itself. You can skip it.)*
 
 Your sync address is now:
 
@@ -75,8 +74,8 @@ change.
 
 ## Good to know
 - **Privacy:** your data goes only to *your* server, protected by your token,
-  over HTTPS. The `.htaccess` blocks anyone from opening the raw data file in a
-  browser; only the password-protected script can read it.
+  over HTTPS. The data file can't be opened directly in a browser (it's a `.php`
+  file that exits immediately); only the password-protected script reads it.
 - **Safety net:** the manual **Download JSON backup** in Settings still works —
   keep using it occasionally just in case.
 - **Conflicts:** if you edit on both devices while offline at the same time, the
