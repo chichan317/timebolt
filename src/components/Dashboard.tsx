@@ -13,6 +13,7 @@ import {
 } from '../lib/time';
 import { entryAmount, formatMoney, isRetainer, resolveRate, sumTotals } from '../lib/money';
 import { useClientMap, useProjectMap } from '../hooks/useData';
+import { Donut, type DonutSlice } from './Donut';
 
 interface DashboardProps {
   settings: Settings;
@@ -82,6 +83,19 @@ export function Dashboard({ settings, clients, projects }: DashboardProps) {
   }, [entries]);
 
   const maxProjectMinutes = weekByProject[0]?.minutes ?? 0;
+  const weekMinutes = weekByProject.reduce((sum, s) => sum + s.minutes, 0);
+  const donutSlices: DonutSlice[] = weekByProject.map((s) => ({
+    label: s.project?.name ?? 'Unknown',
+    value: s.minutes,
+    color: s.project?.color ?? 'var(--border)',
+  }));
+  const pct = (minutes: number) => (weekMinutes > 0 ? Math.round((minutes / weekMinutes) * 100) : 0);
+  const donutAria =
+    weekMinutes > 0
+      ? `Time by project this week: ${weekByProject
+          .map((s) => `${s.project?.name ?? 'Unknown'} ${pct(s.minutes)} percent`)
+          .join(', ')}`
+      : 'No time tracked this week';
 
   return (
     <div className="page">
@@ -108,38 +122,49 @@ export function Dashboard({ settings, clients, projects }: DashboardProps) {
           {weekByProject.length === 0 ? (
             <p className="muted">Nothing tracked this week yet.</p>
           ) : (
-            <ul className="bar-list">
-              {weekByProject.map((slice) => (
-                <li key={slice.project?.id ?? 'unknown'}>
-                  <div className="bar-row">
-                    <span className="bar-dot" style={{ background: slice.project?.color ?? 'var(--border)' }} />
-                    <span className="bar-name">
-                      {slice.project?.name ?? 'Unknown'}
-                      {slice.client && <span className="bar-client"> · {slice.client.name}</span>}
-                    </span>
-                    <span className="bar-value">
-                      {formatMinutes(slice.minutes, settings.timeFormat)}
-                      {isRetainer(slice.client) ? (
-                        <span className="tag tag-retainer">retainer</span>
-                      ) : (
-                        slice.amount > 0 && (
-                          <span className="bar-amount"> {formatMoney(slice.amount, settings.currency)}</span>
-                        )
-                      )}
-                    </span>
-                  </div>
-                  <div className="bar-track">
-                    <div
-                      className="bar-fill"
-                      style={{
-                        width: `${maxProjectMinutes > 0 ? (slice.minutes / maxProjectMinutes) * 100 : 0}%`,
-                        background: slice.project?.color ?? 'var(--border)',
-                      }}
-                    />
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <div className="byproject">
+              <div className="byproject-chart">
+                <Donut
+                  slices={donutSlices}
+                  centerLabel={formatMinutes(weekMinutes, settings.timeFormat)}
+                  centerSub="this week"
+                  ariaLabel={donutAria}
+                />
+              </div>
+              <ul className="bar-list byproject-legend">
+                {weekByProject.map((slice) => (
+                  <li key={slice.project?.id ?? 'unknown'}>
+                    <div className="bar-row">
+                      <span className="bar-dot" style={{ background: slice.project?.color ?? 'var(--border)' }} />
+                      <span className="bar-name">
+                        {slice.project?.name ?? 'Unknown'}
+                        {slice.client && <span className="bar-client"> · {slice.client.name}</span>}
+                      </span>
+                      <span className="bar-value">
+                        <span className="bar-pct">{pct(slice.minutes)}%</span>
+                        {formatMinutes(slice.minutes, settings.timeFormat)}
+                        {isRetainer(slice.client) ? (
+                          <span className="tag tag-retainer">retainer</span>
+                        ) : (
+                          slice.amount > 0 && (
+                            <span className="bar-amount"> {formatMoney(slice.amount, settings.currency)}</span>
+                          )
+                        )}
+                      </span>
+                    </div>
+                    <div className="bar-track">
+                      <div
+                        className="bar-fill"
+                        style={{
+                          width: `${maxProjectMinutes > 0 ? (slice.minutes / maxProjectMinutes) * 100 : 0}%`,
+                          background: slice.project?.color ?? 'var(--border)',
+                        }}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </section>
 
