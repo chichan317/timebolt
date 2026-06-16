@@ -59,7 +59,9 @@ export function decideSync(i: DecideInput): SyncDecision {
 /* ------------------------------ server calls ------------------------------ */
 
 function authHeaders(cfg: SyncConfig): HeadersInit {
-  return { Authorization: `Bearer ${cfg.token}` };
+  // A custom header (not Authorization) so the token survives hosts that strip
+  // the Authorization header under FastCGI/CGI (e.g. SiteGround).
+  return { 'X-Timebolt-Token': cfg.token };
 }
 
 async function asError(res: Response): Promise<Error> {

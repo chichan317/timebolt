@@ -32,7 +32,7 @@ const DATA_GUARD = "<?php exit; ?>\n";
 // permissive to keep cross-origin setup (GitHub Pages → your domain) simple.
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Authorization, Content-Type');
+header('Access-Control-Allow-Headers: X-Timebolt-Token, Authorization, Content-Type');
 header('Access-Control-Max-Age: 86400');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -50,16 +50,23 @@ function send($code, $body) {
     exit;
 }
 
-function bearer_token() {
-    $h = '';
-    if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
-        $h = $_SERVER['HTTP_AUTHORIZATION'];
-    } elseif (function_exists('getallheaders')) {
-        foreach (getallheaders() as $k => $v) {
-            if (strtolower($k) === 'authorization') { $h = $v; break; }
-        }
-    }
-    if (stripos($h, 'Bearer ') === 0) return trim(substr($h, 7));
+/**
+ * Read the token. Primary: the X-Timebolt-Token header (survives FastCGI hosts
+ * like SiteGround that strip Authorization). Fallbacks: Authorization: Bearer,
+ * then a ?token= query param (last resort for awkward hosts).
+ */
+function read_token() {
+    $headers = function_exists('getallheaders') ? getallheaders() : [];
+    $lower = [];
+    foreach ($headers as $k => $v) $lower[strtolower($k)] = $v;
+
+    if (isset($_SERVER['HTTP_X_TIMEBOLT_TOKEN'])) return trim($_SERVER['HTTP_X_TIMEBOLT_TOKEN']);
+    if (isset($lower['x-timebolt-token'])) return trim($lower['x-timebolt-token']);
+
+    $auth = $_SERVER['HTTP_AUTHORIZATION'] ?? ($lower['authorization'] ?? '');
+    if (stripos($auth, 'Bearer ') === 0) return trim(substr($auth, 7));
+
+    if (isset($_GET['token'])) return trim($_GET['token']);
     return '';
 }
 
@@ -98,7 +105,7 @@ function write_doc($doc) {
 if (TIMEBOLT_TOKEN === 'CHANGE-ME-to-a-long-random-secret') {
     send(500, ['error' => 'Server not configured: set TIMEBOLT_TOKEN in timebolt-sync.php.']);
 }
-if (!hash_equals(TIMEBOLT_TOKEN, bearer_token())) {
+if (!hash_equals(TIMEBOLT_TOKEN, read_token())) {
     send(401, ['error' => 'Unauthorized: wrong or missing token.']);
 }
 
