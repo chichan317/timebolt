@@ -1304,10 +1304,22 @@ h2 {
   color: var(--muted);
 }
 
+.field-section-label {
+  margin: 4px 0 -2px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
 /* ------------------------------ forms & fields ----------------------------- */
 
 input,
-select {
+select,
+.field textarea {
   font: inherit;
   color: var(--text);
   background: var(--surface);
@@ -1318,8 +1330,14 @@ select {
   max-width: 100%;
 }
 
+.field textarea {
+  width: 100%;
+  resize: vertical;
+}
+
 input:focus,
-select:focus {
+select:focus,
+.field textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
 }
@@ -1702,30 +1720,43 @@ select:focus {
 
 .invoice-brand {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
 }
 
 .invoice-bolt {
   color: var(--bolt);
   display: inline-flex;
+  margin-top: 2px;
 }
 
-.invoice-business {
-  font: inherit;
+.invoice-from {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.invoice-business-name {
   font-size: 20px;
   font-weight: 700;
   color: #1a1d2b;
-  border: none;
-  border-bottom: 1px dashed transparent;
-  background: transparent;
-  padding: 2px 0;
-  min-width: 220px;
+  margin-bottom: 2px;
 }
 
-.invoice-business:focus {
-  outline: none;
-  border-bottom-color: #d2d6e1;
+.invoice-from-line {
+  font-size: 12.5px;
+  color: #646b80;
+}
+
+.invoice-multiline {
+  white-space: pre-line;
+}
+
+.invoice-business-placeholder {
+  font-size: 13px;
+  color: #9aa1b2;
+  font-style: italic;
+  max-width: 220px;
 }
 
 .invoice-meta {
@@ -1779,6 +1810,24 @@ select:focus {
 .invoice-client {
   font-size: 17px;
   font-weight: 600;
+}
+
+.invoice-billto-line {
+  font-size: 12.5px;
+  color: #646b80;
+}
+
+.invoice-payment {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.invoice-payment-text {
+  margin: 0;
+  font-size: 13px;
+  color: #1a1d2b;
 }
 
 .invoice-section {
@@ -1908,7 +1957,6 @@ select:focus {
     padding: 0;
   }
 
-  .invoice-business,
   .invoice-notes textarea {
     border-color: transparent;
   }

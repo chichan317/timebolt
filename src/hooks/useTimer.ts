@@ -1,28 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
-import { db, uid } from '../db';
+import { db, notifyDataChanged, uid } from '../db';
 import type { TimerState } from '../types';
 import { todayKey } from '../lib/time';
+import { TIMER_SYNC_EVENT, loadTimer, saveTimer } from '../lib/timerStore';
 
-const STORAGE_KEY = 'timebolt.timer.v1';
+const load = loadTimer;
 
-function load(): TimerState | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as TimerState;
-    if (typeof parsed.projectId !== 'string') return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
+/** Persist a local (user-initiated) timer change and let sync push it. */
 function persist(state: TimerState | null): void {
-  if (state === null) {
-    localStorage.removeItem(STORAGE_KEY);
-  } else {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }
+  saveTimer(state);
+  notifyDataChanged();
 }
 
 export function elapsedMs(state: TimerState, now: number): number {
@@ -56,6 +43,16 @@ export function useTimer(): TimerApi {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, [isRunning]);
+
+  // Adopt a timer applied from another device (via a sync pull).
+  useEffect(() => {
+    const onExternal = () => {
+      setTimer(load());
+      setNow(Date.now());
+    };
+    window.addEventListener(TIMER_SYNC_EVENT, onExternal);
+    return () => window.removeEventListener(TIMER_SYNC_EVENT, onExternal);
+  }, []);
 
   const update = useCallback((next: TimerState | null) => {
     persist(next);

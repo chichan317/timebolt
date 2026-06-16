@@ -136,6 +136,8 @@ There is a standalone reference mockup at **`docs/dashboard-preview.html`** (ope
 10. ✅ **Dashboard donut** — accessible SVG donut of time-by-project (`components/Donut.tsx`) with a percentage legend.
 11. ✅ **Common-work templates** — `WorkTemplate` + Dexie v2 `templates` store; "Save as template" in `EntryModal`; a "Quick add to today" chip row in `WeekView`. Included in backup + sync.
 12. ✅ **Drag-and-drop** in `WeekView` — drag an entry to another day (move), Alt to duplicate. Desktop/mouse only.
+13. ✅ **Invoice details** — saved business profile (`Settings.business`: name/ABN/address/email/payment, edited in Settings → Business details) + per-client billing details (`Client.address/email/abn`). The invoice auto-fills both. GST/numbering deferred.
+14. ✅ **Shared running timer** — the timer rides the sync payload (`BackupFile.timer`, transient; storage in `lib/timerStore.ts`). Start on one device, see/control it on another after open/focus. `useTimer` calls `notifyDataChanged()` on changes; `useSync` applies a pulled timer via `applyExternalTimer` (no loop). `restoreBackup` ignores `timer`.
 
 **Open / nice-to-have ideas (not started):**
 - Dashboard extras the owner deferred: week-over-week comparison, goals/streaks, daily activity mini-chart.

@@ -51,8 +51,9 @@ export function Invoice({
   to,
   onClose,
 }: InvoiceProps) {
-  const [businessName, setBusinessName] = useState('');
   const [notes, setNotes] = useState('');
+  const business = settings.business;
+  const hasBusiness = Boolean(business?.name.trim());
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -116,6 +117,8 @@ export function Invoice({
   const invoiceNumber = `INV-${issueDate.replace(/-/g, '')}`;
   const billTo =
     sections.length === 1 ? sections[0].clientName : `${sections.length} clients`;
+  const billClient =
+    sections.length === 1 ? clientById.get(sections[0].clientId) : undefined;
 
   return (
     <div className="invoice-overlay">
@@ -135,13 +138,20 @@ export function Invoice({
             <span className="invoice-bolt">
               <BoltIcon size={22} />
             </span>
-            <input
-              className="invoice-business"
-              value={businessName}
-              onChange={(e) => setBusinessName(e.target.value)}
-              placeholder="Your business name"
-              aria-label="Your business name"
-            />
+            {hasBusiness ? (
+              <div className="invoice-from">
+                <span className="invoice-business-name">{business?.name}</span>
+                {business?.abn && <span className="invoice-from-line">ABN {business.abn}</span>}
+                {business?.address && (
+                  <span className="invoice-from-line invoice-multiline">{business.address}</span>
+                )}
+                {business?.email && <span className="invoice-from-line">{business.email}</span>}
+              </div>
+            ) : (
+              <span className="invoice-business-placeholder">
+                Add your details in Settings → Business details
+              </span>
+            )}
           </div>
           <div className="invoice-meta">
             <h1>Invoice</h1>
@@ -167,6 +177,11 @@ export function Invoice({
         <div className="invoice-billto">
           <span className="invoice-label">Bill to</span>
           <span className="invoice-client">{billTo}</span>
+          {billClient?.abn && <span className="invoice-billto-line">ABN {billClient.abn}</span>}
+          {billClient?.address && (
+            <span className="invoice-billto-line invoice-multiline">{billClient.address}</span>
+          )}
+          {billClient?.email && <span className="invoice-billto-line">{billClient.email}</span>}
         </div>
 
         {sections.length === 0 ? (
@@ -231,13 +246,20 @@ export function Invoice({
           </div>
         )}
 
+        {business?.payment.trim() && (
+          <div className="invoice-payment">
+            <span className="invoice-label">Payment</span>
+            <p className="invoice-payment-text invoice-multiline">{business.payment}</p>
+          </div>
+        )}
+
         <label className="invoice-notes">
           <span className="invoice-label">Notes</span>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Payment terms, bank details, thank-you note… (optional)"
-            rows={3}
+            placeholder="Anything specific to this invoice… (optional)"
+            rows={2}
           />
         </label>
 

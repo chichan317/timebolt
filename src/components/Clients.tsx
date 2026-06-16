@@ -38,6 +38,9 @@ function ClientModal({
   );
   const [rate, setRate] = useState(client?.hourlyRate?.toString() ?? '');
   const [retainer, setRetainer] = useState(client?.retainerAmount?.toString() ?? '');
+  const [address, setAddress] = useState(client?.address ?? '');
+  const [email, setEmail] = useState(client?.email ?? '');
+  const [abn, setAbn] = useState(client?.abn ?? '');
   const [error, setError] = useState<string | null>(null);
 
   const save = async () => {
@@ -66,6 +69,9 @@ function ClientModal({
     await db.clients.put({
       id: client?.id ?? uid(),
       name: trimmed,
+      address: address.trim(),
+      email: email.trim(),
+      abn: abn.trim(),
       hourlyRate,
       retainerAmount,
       archived: client?.archived ?? false,
@@ -156,6 +162,36 @@ function ClientModal({
             </span>
           </label>
         )}
+
+        <p className="field-section-label">Billing details (shown on invoices)</p>
+        <label className="field">
+          <span>Email</span>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="billing@client.com (optional)"
+          />
+        </label>
+        <label className="field">
+          <span>Address</span>
+          <textarea
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Client's billing address (optional)"
+            rows={2}
+          />
+        </label>
+        <label className="field">
+          <span>ABN</span>
+          <input
+            type="text"
+            value={abn}
+            onChange={(e) => setAbn(e.target.value)}
+            placeholder="Client's ABN (optional)"
+          />
+        </label>
+
         {error && <p className="form-error">{error}</p>}
         <button type="submit" hidden />
       </form>

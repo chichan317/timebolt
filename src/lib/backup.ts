@@ -3,6 +3,7 @@ import type { BackupFile, Client, Project, Settings, TimeEntry, WorkTemplate } f
 import { DEFAULT_SETTINGS } from '../types';
 import { downloadFile } from './csv';
 import { markBackupDone } from './storage';
+import { loadTimer } from './timerStore';
 
 /** Build the full backup document (the single source of truth for the data). */
 export async function buildBackupData(): Promise<BackupFile> {
@@ -22,6 +23,7 @@ export async function buildBackupData(): Promise<BackupFile> {
     projects,
     entries,
     templates,
+    timer: loadTimer(),
   };
 }
 

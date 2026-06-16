@@ -5,6 +5,10 @@ export type ID = string;
 export interface Client {
   id: ID;
   name: string;
+  /** Billing details shown on invoices. Optional. */
+  address?: string;
+  email?: string;
+  abn?: string;
   /** Default hourly rate for this client's projects. Null = no rate. */
   hourlyRate: number | null;
   /**
@@ -70,8 +74,20 @@ export type TimeFormat = 'hm' | 'decimal';
 
 export type ThemePref = 'system' | 'light' | 'dark';
 
+/** Your own business details, shown on invoices. Saved once in Settings. */
+export interface BusinessProfile {
+  name: string;
+  abn: string;
+  address: string;
+  email: string;
+  /** Payment instructions / bank details shown in the invoice footer. */
+  payment: string;
+}
+
 export interface Settings {
   id: 'settings';
+  /** Your invoicing business details. Optional until filled in. */
+  business?: BusinessProfile;
   /** ISO 4217 currency code, e.g. 'USD', 'AUD'. */
   currency: string;
   weekStart: WeekStart;
@@ -102,6 +118,9 @@ export interface BackupFile {
   entries: TimeEntry[];
   /** Optional for backward compatibility with backups made before templates. */
   templates?: WorkTemplate[];
+  /** Transient running-timer state, used only by cross-device sync (never
+   *  applied when restoring a manual backup). */
+  timer?: TimerState | null;
 }
 
 /**

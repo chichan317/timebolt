@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { clearAllData, db, saveSettings } from '../db';
 import type {
+  BusinessProfile,
   Client,
   Project,
   RoundingIncrement,
@@ -36,6 +37,14 @@ export function SettingsPage({ settings, clients, projects }: SettingsPageProps)
   const [pendingImport, setPendingImport] = useState<ReturnType<typeof parseBackup> | null>(null);
   const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
   const [backupTime, setBackupTime] = useState<number | null>(lastBackupAt);
+
+  const emptyBusiness: BusinessProfile = { name: '', abn: '', address: '', email: '', payment: '' };
+  const [biz, setBiz] = useState<BusinessProfile>(settings.business ?? emptyBusiness);
+  const updateBiz = (patch: Partial<BusinessProfile>) => {
+    const next = { ...biz, ...patch };
+    setBiz(next);
+    void saveSettings({ business: next });
+  };
 
   useEffect(() => {
     void getStorageInfo().then(setStorageInfo);
@@ -189,6 +198,60 @@ export function SettingsPage({ settings, clients, projects }: SettingsPageProps)
           Rounding only affects billable amounts in reports and exports — your tracked minutes are
           stored exactly as entered.
         </p>
+      </section>
+
+      <section className="panel">
+        <h2>Business details</h2>
+        <p className="muted small">
+          Your details for invoices — filled in once and reused. They sync to your devices.
+        </p>
+        <div className="settings-grid">
+          <label className="field">
+            <span>Business name</span>
+            <input
+              type="text"
+              value={biz.name}
+              onChange={(e) => updateBiz({ name: e.target.value })}
+              placeholder="Your business or your name"
+            />
+          </label>
+          <label className="field">
+            <span>ABN</span>
+            <input
+              type="text"
+              value={biz.abn}
+              onChange={(e) => updateBiz({ abn: e.target.value })}
+              placeholder="e.g. 12 345 678 901"
+            />
+          </label>
+          <label className="field">
+            <span>Email</span>
+            <input
+              type="email"
+              value={biz.email}
+              onChange={(e) => updateBiz({ email: e.target.value })}
+              placeholder="you@example.com"
+            />
+          </label>
+        </div>
+        <label className="field">
+          <span>Address</span>
+          <textarea
+            value={biz.address}
+            onChange={(e) => updateBiz({ address: e.target.value })}
+            placeholder="Street, suburb, state, postcode"
+            rows={2}
+          />
+        </label>
+        <label className="field">
+          <span>Payment details</span>
+          <textarea
+            value={biz.payment}
+            onChange={(e) => updateBiz({ payment: e.target.value })}
+            placeholder="Bank name, BSB, account number, or payment terms"
+            rows={2}
+          />
+        </label>
       </section>
 
       <section className="panel">

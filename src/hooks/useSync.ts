@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { subscribeDataChanged } from '../db';
 import { buildBackupData, restoreBackup } from '../lib/backup';
+import { applyExternalTimer } from '../lib/timerStore';
 import {
   decideSync,
   getStatus,
@@ -81,6 +82,9 @@ export function useSync(): SyncState & {
       applyingRef.current = true;
       try {
         await restoreBackup(doc.payload);
+        // Adopt the running timer from the other device (transient, not part
+        // of restoreBackup). applyExternalTimer doesn't re-trigger a push.
+        applyExternalTimer(doc.payload.timer ?? null);
       } finally {
         applyingRef.current = false;
       }

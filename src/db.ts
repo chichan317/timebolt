@@ -36,7 +36,8 @@ export function uid(): string {
 
 const dataChangeListeners = new Set<() => void>();
 
-function notifyDataChanged(): void {
+/** Notify subscribers that some syncable data changed (also used by the timer). */
+export function notifyDataChanged(): void {
   for (const cb of dataChangeListeners) cb();
 }
 
