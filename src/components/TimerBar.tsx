@@ -46,8 +46,8 @@ export function TimerBar({ timerApi, clients, projects, onGoToClients }: TimerBa
   };
 
   /* --------------------------- keyboard shortcuts -------------------------- */
-  // Space = start / pause / resume; S = stop & save. Ignored while typing or
-  // when a modal is open. A ref keeps the handler's closure fresh.
+  // S = stop & save the running timer. Ignored while typing or when a modal is
+  // open. A ref keeps the handler's closure fresh.
   const handleKeyRef = useRef<(e: KeyboardEvent) => void>(() => {});
   handleKeyRef.current = (e: KeyboardEvent) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -63,16 +63,9 @@ export function TimerBar({ timerApi, clients, projects, onGoToClients }: TimerBa
     }
     if (document.querySelector('.modal-backdrop')) return;
 
-    if (e.code === 'Space') {
+    if ((e.key === 's' || e.key === 'S') && timer !== null) {
       e.preventDefault();
-      if (timer === null) start();
-      else if (isRunning) timerApi.pause();
-      else timerApi.resume();
-    } else if (e.key === 's' || e.key === 'S') {
-      if (timer !== null) {
-        e.preventDefault();
-        void stop();
-      }
+      void stop();
     }
   };
 
@@ -110,15 +103,9 @@ export function TimerBar({ timerApi, clients, projects, onGoToClients }: TimerBa
             </option>
           ))}
         </select>
-        <button
-          className="btn btn-primary timer-start btn-icon"
-          onClick={start}
-          title="Start (Space)"
-          type="button"
-        >
+        <button className="btn btn-primary timer-start btn-icon" onClick={start} type="button">
           <Icon name="play" size={13} /> Start
         </button>
-        <kbd className="kbd-hint" aria-hidden="true">Space</kbd>
       </div>
     );
   }
@@ -156,11 +143,11 @@ export function TimerBar({ timerApi, clients, projects, onGoToClients }: TimerBa
         {formatClock(elapsed)}
       </span>
       {isRunning ? (
-        <button className="icon-btn" onClick={timerApi.pause} title="Pause (Space)" aria-label="Pause" type="button">
+        <button className="icon-btn" onClick={timerApi.pause} title="Pause" aria-label="Pause" type="button">
           <Icon name="pause" size={15} />
         </button>
       ) : (
-        <button className="icon-btn" onClick={timerApi.resume} title="Resume (Space)" aria-label="Resume" type="button">
+        <button className="icon-btn" onClick={timerApi.resume} title="Resume" aria-label="Resume" type="button">
           <Icon name="play" size={15} />
         </button>
       )}
