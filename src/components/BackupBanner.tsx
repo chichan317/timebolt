@@ -8,18 +8,22 @@ import {
   lastBackupAt,
   snoozeBackupReminder,
 } from '../lib/storage';
+import { useSyncContext } from '../hooks/useSync';
 import { useToast } from './ui';
 
 /**
  * Slim reminder strip shown when tracked data exists but hasn't been
- * backed up for a while. Data is single-copy in this browser, so this
- * is the one nag the app allows itself.
+ * backed up for a while. Hidden once cross-device sync is connected —
+ * then the data already lives on the user's own server, not just this
+ * browser, so the nag no longer applies.
  */
 export function BackupBanner() {
   const toast = useToast();
+  const sync = useSyncContext();
   const [, refresh] = useReducer((n: number) => n + 1, 0);
   const entryCount = useLiveQuery(() => db.entries.count(), []);
 
+  if (sync.config !== null) return null;
   if (entryCount === undefined || !backupReminderDue(entryCount)) return null;
 
   const last = lastBackupAt();
