@@ -589,6 +589,11 @@ h2 {
   font-weight: 550;
 }
 
+.sync-url {
+  word-break: break-all;
+  font-size: 13px;
+}
+
 /* -------------------------------- week view ------------------------------- */
 
 .week-nav {

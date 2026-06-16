@@ -87,6 +87,12 @@ tests/time.test.ts     # Unit tests for time/money helpers
 - **Settings** is a single row (`id: 'settings'`); rounding/time-format/currency/week-start/theme.
 - Cascade deletes live in `db.ts` (`deleteClientCascade`, `deleteProjectCascade`) — always use them so no orphan entries remain.
 
+### Cross-device sync (optional, off by default)
+- The app is still local-first; sync is opt-in via **Settings → Sync across devices**.
+- A tiny self-hosted PHP server (`server/timebolt-sync.php` + `.htaccess`, no DB — stores the `BackupFile` as one JSON doc with a `version`) holds the data; the user uploads it to their own host and enters its URL + a secret token on each device. Setup guide: `server/README.md`.
+- Client pieces: `lib/sync.ts` (server calls + the pure, unit-tested `decideSync` last-write-wins logic), `hooks/useSync.ts` (pull on open/refocus, debounced push on change, status), `components/SyncSettings.tsx` (the Settings UI). `db.ts` exposes `subscribeDataChanged` (via Dexie table hooks) and `backup.ts` exposes `buildBackupData()` — both reused by sync.
+- Conflict policy is whole-dataset last-write-wins by modified time with a `localStorage` safety snapshot before an overwriting pull. Per-record merge is intentionally out of scope.
+
 ---
 
 ## 5. Conventions to follow

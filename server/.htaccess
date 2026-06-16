@@ -1,0 +1,13 @@
+# Block direct web access to the stored data file(s). Only timebolt-sync.php
+# (which checks the token) may read them.
+<FilesMatch "\.store\.json$">
+  Require all denied
+</FilesMatch>
+
+# Fallback for older Apache (2.2).
+<IfModule !mod_authz_core.c>
+  <FilesMatch "\.store\.json$">
+    Order allow,deny
+    Deny from all
+  </FilesMatch>
+</IfModule>

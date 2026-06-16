@@ -4,15 +4,15 @@ import { DEFAULT_SETTINGS } from '../types';
 import { downloadFile } from './csv';
 import { markBackupDone } from './storage';
 
-/** Build and download a full JSON backup. */
-export async function exportBackup(): Promise<void> {
+/** Build the full backup document (the single source of truth for the data). */
+export async function buildBackupData(): Promise<BackupFile> {
   const [settings, clients, projects, entries] = await Promise.all([
     getSettings(),
     db.clients.toArray(),
     db.projects.toArray(),
     db.entries.toArray(),
   ]);
-  const backup: BackupFile = {
+  return {
     app: 'timebolt',
     version: 1,
     exportedAt: new Date().toISOString(),
@@ -21,6 +21,11 @@ export async function exportBackup(): Promise<void> {
     projects,
     entries,
   };
+}
+
+/** Build and download a full JSON backup. */
+export async function exportBackup(): Promise<void> {
+  const backup = await buildBackupData();
   const stamp = new Date().toISOString().slice(0, 10);
   downloadFile(`timebolt-backup-${stamp}.json`, JSON.stringify(backup, null, 2), 'application/json');
   markBackupDone();

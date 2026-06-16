@@ -17,6 +17,7 @@ Inspired by the best parts of Harvest, Toggl Track and Clockify: a color-coded w
 - **CSV export** — invoicing-ready columns: date, client, project, note, billable, exact hours, rounded billed hours, rate, amount, currency.
 - **Printable invoice** — generate a clean invoice from the current report filters (billable line items grouped by client/project with hours, rate, amount, subtotals and total) and save it as a PDF via the browser's print dialog — no extra tools.
 - **JSON backup** — one-click full export and restore of all data and settings.
+- **Optional cross-device sync** — point TimeBolt at your own tiny PHP server (one file, no database — see [`server/`](server/README.md)) to keep the same data on your computer and phone automatically. Off by default; the app stays fully local until you turn it on.
 - **Data safety** — the app requests persistent storage from the browser (so IndexedDB isn't auto-evicted), shows storage durability and usage in Settings, and displays a reminder banner when you have 3+ entries and your last backup is more than 7 days old (snoozable for 3 days).
 - **Settings** — currency, billing rounding (none / 5 / 6 / 10 / 15 / 30 / 60 min, nearest or always-up), week start day, time display (1:30 vs 1.50), light/dark/system theme.
 - **Mobile-friendly** — the sidebar becomes a bottom tab bar, day columns stack vertically.
@@ -59,7 +60,7 @@ Dates are stored as local `YYYY-MM-DD` strings and durations as whole minutes, w
 
 All data lives in this browser's IndexedDB (database name `timebolt`). Nothing is transmitted anywhere. Two consequences:
 
-1. **Different browser or device = different data.** Use Settings → *Download JSON backup* / *Restore from backup* to move between machines.
+1. **Different browser or device = different data** — unless you turn on **Sync** (Settings → *Sync across devices*), which keeps them in step through your own server. Without sync, use Settings → *Download JSON backup* / *Restore from backup* to move between machines.
 2. **Browsers can evict local storage** (clearing site data, private windows, storage pressure). Back up regularly — it's one click.
 
 ## License

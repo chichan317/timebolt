@@ -25,6 +25,34 @@ export function uid(): string {
   return crypto.randomUUID();
 }
 
+/* ------------------------- data-change notifications ----------------------- */
+/* A tiny emitter so features like sync know when *any* data changed, no matter
+   which screen wrote it. Dexie table hooks fire for every create/update/delete. */
+
+const dataChangeListeners = new Set<() => void>();
+
+function notifyDataChanged(): void {
+  for (const cb of dataChangeListeners) cb();
+}
+
+/** Subscribe to "some data changed"; returns an unsubscribe function. */
+export function subscribeDataChanged(cb: () => void): () => void {
+  dataChangeListeners.add(cb);
+  return () => dataChangeListeners.delete(cb);
+}
+
+for (const table of [db.clients, db.projects, db.entries, db.settings]) {
+  table.hook('creating', () => {
+    notifyDataChanged();
+  });
+  table.hook('updating', () => {
+    notifyDataChanged();
+  });
+  table.hook('deleting', () => {
+    notifyDataChanged();
+  });
+}
+
 export async function getSettings(): Promise<Settings> {
   return (await db.settings.get('settings')) ?? DEFAULT_SETTINGS;
 }

@@ -1,5 +1,6 @@
 import { parseDuration, roundMinutes, startOfWeek, weekDays, toDateKey, formatMinutes } from '../src/lib/time';
 import { entryAmount, isRetainer, resolveRate } from '../src/lib/money';
+import { decideSync } from '../src/lib/sync';
 import type { Client, Project, Settings, TimeEntry } from '../src/types';
 import { DEFAULT_SETTINGS } from '../src/types';
 
@@ -82,5 +83,18 @@ eq(isRetainer({ ...retainerClient, retainerAmount: 0 }), false, 'isRetainer: fal
 eq(isRetainer(undefined), false, 'isRetainer: false for undefined');
 // rate is 0 even though hourlyRate is 200 and the project sets its own rate
 eq(resolveRate(proj(150), retainerClient), 0, 'retainer: rate forced to 0');
+
+// --- sync decision logic ---
+const decide = (o: Partial<Parameters<typeof decideSync>[0]>) =>
+  decideSync({
+    dirty: false, lastSyncVersion: 0, localModifiedAt: 0,
+    serverVersion: 0, serverUpdatedAt: 0, ...o,
+  });
+eq(decide({}), 'noop', 'sync: nothing changed -> noop');
+eq(decide({ dirty: true }), 'push', 'sync: local dirty, server same -> push');
+eq(decide({ serverVersion: 3, lastSyncVersion: 1 }), 'pull', 'sync: server ahead, clean -> pull');
+eq(decide({ dirty: true, serverVersion: 3, lastSyncVersion: 1, localModifiedAt: 200, serverUpdatedAt: 100 }), 'conflict-push', 'sync: both changed, local newer -> push');
+eq(decide({ dirty: true, serverVersion: 3, lastSyncVersion: 1, localModifiedAt: 100, serverUpdatedAt: 200 }), 'conflict-pull', 'sync: both changed, server newer -> pull');
+eq(decide({ dirty: true, serverVersion: 2, lastSyncVersion: 2 }), 'push', 'sync: dirty, already at server version -> push');
 
 console.log('done');

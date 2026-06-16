@@ -1,0 +1,130 @@
+<?php
+/**
+ * TimeBolt sync server — a single self-hosted file.
+ *
+ * Stores one user's TimeBolt dataset in a flat JSON file next to this script
+ * and lets the app pull/push it from any device. No database required.
+ *
+ * SETUP (see server/README.md):
+ *   1. Set TIMEBOLT_TOKEN below to a long private password.
+ *   2. Upload this file (and the .htaccess) to your web space.
+ *   3. In TimeBolt → Settings → Sync, enter the file URL + the same token.
+ *
+ * The token is what protects your data. Keep it secret.
+ */
+
+// ---- configuration --------------------------------------------------------
+
+/** CHANGE THIS to a long random secret, e.g. 30+ random characters. */
+const TIMEBOLT_TOKEN = 'CHANGE-ME-to-a-long-random-secret';
+
+/** Data file lives beside this script. The .htaccess blocks direct access. */
+const DATA_FILE = __DIR__ . '/timebolt-data.store.json';
+
+// ---- CORS -----------------------------------------------------------------
+// The bearer token (not the origin) is what secures the data, so origin is
+// permissive to keep cross-origin setup (GitHub Pages → your domain) simple.
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Authorization, Content-Type');
+header('Access-Control-Max-Age: 86400');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
+
+header('Content-Type: application/json');
+
+// ---- helpers --------------------------------------------------------------
+
+function send($code, $body) {
+    http_response_code($code);
+    echo json_encode($body);
+    exit;
+}
+
+function bearer_token() {
+    $h = '';
+    if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+        $h = $_SERVER['HTTP_AUTHORIZATION'];
+    } elseif (function_exists('getallheaders')) {
+        foreach (getallheaders() as $k => $v) {
+            if (strtolower($k) === 'authorization') { $h = $v; break; }
+        }
+    }
+    if (stripos($h, 'Bearer ') === 0) return trim(substr($h, 7));
+    return '';
+}
+
+/** Read the stored document, or an empty one if nothing saved yet. */
+function read_doc() {
+    if (!file_exists(DATA_FILE)) {
+        return ['version' => 0, 'updatedAt' => 0, 'payload' => null];
+    }
+    $raw = file_get_contents(DATA_FILE);
+    $doc = json_decode($raw, true);
+    if (!is_array($doc) || !isset($doc['version'])) {
+        return ['version' => 0, 'updatedAt' => 0, 'payload' => null];
+    }
+    return $doc;
+}
+
+function write_doc($doc) {
+    $fp = fopen(DATA_FILE, 'c+');
+    if ($fp === false) send(500, ['error' => 'Cannot open data file for writing.']);
+    flock($fp, LOCK_EX);
+    ftruncate($fp, 0);
+    rewind($fp);
+    fwrite($fp, json_encode($doc));
+    fflush($fp);
+    flock($fp, LOCK_UN);
+    fclose($fp);
+}
+
+// ---- auth -----------------------------------------------------------------
+
+if (TIMEBOLT_TOKEN === 'CHANGE-ME-to-a-long-random-secret') {
+    send(500, ['error' => 'Server not configured: set TIMEBOLT_TOKEN in timebolt-sync.php.']);
+}
+if (!hash_equals(TIMEBOLT_TOKEN, bearer_token())) {
+    send(401, ['error' => 'Unauthorized: wrong or missing token.']);
+}
+
+// ---- routing --------------------------------------------------------------
+
+$action = isset($_GET['action']) ? $_GET['action'] : '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action === 'status') {
+    $doc = read_doc();
+    send(200, ['version' => $doc['version'], 'updatedAt' => $doc['updatedAt']]);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action === 'pull') {
+    send(200, read_doc());
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'push') {
+    $body = json_decode(file_get_contents('php://input'), true);
+    if (!is_array($body) || !array_key_exists('payload', $body)) {
+        send(400, ['error' => 'Missing payload.']);
+    }
+    $base = isset($body['baseVersion']) ? (int) $body['baseVersion'] : 0;
+    $updatedAt = isset($body['updatedAt']) ? (int) $body['updatedAt'] : 0;
+
+    $doc = read_doc();
+    // Optimistic concurrency: if the server moved on since the client's last
+    // sync, don't clobber — hand back the current server doc to resolve.
+    if ($doc['version'] !== 0 && $base !== $doc['version']) {
+        send(409, $doc);
+    }
+    $next = [
+        'version' => $doc['version'] + 1,
+        'updatedAt' => $updatedAt > 0 ? $updatedAt : (int) round(microtime(true) * 1000),
+        'payload' => $body['payload'],
+    ];
+    write_doc($next);
+    send(200, ['version' => $next['version'], 'updatedAt' => $next['updatedAt']]);
+}
+
+send(404, ['error' => 'Unknown action.']);

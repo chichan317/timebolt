@@ -21,6 +21,7 @@ import {
   type StorageInfo,
 } from '../lib/storage';
 import { ConfirmDialog, useToast } from './ui';
+import { SyncSettings } from './SyncSettings';
 
 interface SettingsPageProps {
   settings: Settings;
@@ -259,6 +260,8 @@ export function SettingsPage({ settings, clients, projects }: SettingsPageProps)
           }}
         />
       </section>
+
+      <SyncSettings />
 
       <section className="panel panel-danger">
         <h2>Danger zone</h2>
