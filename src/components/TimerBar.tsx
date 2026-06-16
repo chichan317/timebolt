@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Client, Project } from '../types';
 import type { TimerApi } from '../hooks/useTimer';
 import { formatClock } from '../lib/time';
@@ -45,6 +45,43 @@ export function TimerBar({ timerApi, clients, projects, onGoToClients }: TimerBa
     toast('Timer saved to today');
   };
 
+  /* --------------------------- keyboard shortcuts -------------------------- */
+  // Space = start / pause / resume; S = stop & save. Ignored while typing or
+  // when a modal is open. A ref keeps the handler's closure fresh.
+  const handleKeyRef = useRef<(e: KeyboardEvent) => void>(() => {});
+  handleKeyRef.current = (e: KeyboardEvent) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const el = e.target as HTMLElement | null;
+    if (
+      el &&
+      (el.tagName === 'INPUT' ||
+        el.tagName === 'TEXTAREA' ||
+        el.tagName === 'SELECT' ||
+        el.isContentEditable)
+    ) {
+      return;
+    }
+    if (document.querySelector('.modal-backdrop')) return;
+
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (timer === null) start();
+      else if (isRunning) timerApi.pause();
+      else timerApi.resume();
+    } else if (e.key === 's' || e.key === 'S') {
+      if (timer !== null) {
+        e.preventDefault();
+        void stop();
+      }
+    }
+  };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => handleKeyRef.current(e);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   /* ------------------------------ idle state ------------------------------ */
   if (timer === null) {
     if (active.length === 0) {
@@ -73,9 +110,15 @@ export function TimerBar({ timerApi, clients, projects, onGoToClients }: TimerBa
             </option>
           ))}
         </select>
-        <button className="btn btn-primary timer-start btn-icon" onClick={start} type="button">
+        <button
+          className="btn btn-primary timer-start btn-icon"
+          onClick={start}
+          title="Start (Space)"
+          type="button"
+        >
           <Icon name="play" size={13} /> Start
         </button>
+        <kbd className="kbd-hint" aria-hidden="true">Space</kbd>
       </div>
     );
   }
@@ -113,15 +156,20 @@ export function TimerBar({ timerApi, clients, projects, onGoToClients }: TimerBa
         {formatClock(elapsed)}
       </span>
       {isRunning ? (
-        <button className="icon-btn" onClick={timerApi.pause} title="Pause" aria-label="Pause" type="button">
+        <button className="icon-btn" onClick={timerApi.pause} title="Pause (Space)" aria-label="Pause" type="button">
           <Icon name="pause" size={15} />
         </button>
       ) : (
-        <button className="icon-btn" onClick={timerApi.resume} title="Resume" aria-label="Resume" type="button">
+        <button className="icon-btn" onClick={timerApi.resume} title="Resume (Space)" aria-label="Resume" type="button">
           <Icon name="play" size={15} />
         </button>
       )}
-      <button className="btn btn-primary btn-sm" onClick={() => void stop()} type="button">
+      <button
+        className="btn btn-primary btn-sm"
+        onClick={() => void stop()}
+        title="Stop & save (S)"
+        type="button"
+      >
         Stop
       </button>
       {confirmDiscard ? (
