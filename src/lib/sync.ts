@@ -75,14 +75,25 @@ async function asError(res: Response): Promise<Error> {
   return new Error(detail || `Request failed (${res.status})`);
 }
 
+/** Unique suffix so proxy caches (e.g. SiteGround's) never serve a stale GET. */
+function bust(): string {
+  return `&_=${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 export async function getStatus(cfg: SyncConfig): Promise<ServerStatus> {
-  const res = await fetch(`${cfg.url}?action=status`, { headers: authHeaders(cfg) });
+  const res = await fetch(`${cfg.url}?action=status${bust()}`, {
+    headers: authHeaders(cfg),
+    cache: 'no-store',
+  });
   if (!res.ok) throw await asError(res);
   return (await res.json()) as ServerStatus;
 }
 
 export async function pull(cfg: SyncConfig): Promise<ServerDoc> {
-  const res = await fetch(`${cfg.url}?action=pull`, { headers: authHeaders(cfg) });
+  const res = await fetch(`${cfg.url}?action=pull${bust()}`, {
+    headers: authHeaders(cfg),
+    cache: 'no-store',
+  });
   if (!res.ok) throw await asError(res);
   return (await res.json()) as ServerDoc;
 }
