@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, entriesBetween, uid } from '../db';
 import type { Client, Project, Settings, TimeEntry } from '../types';
@@ -38,6 +38,9 @@ export function WeekView({ settings, clients, projects, onGoToClients }: WeekVie
   const [copyPrompt, setCopyPrompt] = useState<TimeEntry[] | null>(null);
   const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
   const templates = useTemplates();
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverDay, setDragOverDay] = useState<string | null>(null);
+  const draggedEntryRef = useRef<TimeEntry | null>(null);
 
   const days = useMemo(() => weekDays(anchor, settings.weekStart), [anchor, settings.weekStart]);
   const visibleDays = useMemo(
@@ -126,6 +129,28 @@ export function WeekView({ settings, clients, projects, onGoToClients }: WeekVie
     await db.templates.delete(templateId);
     setDeleteTemplateId(null);
     toast('Template removed');
+  };
+
+  /* ------------------------------ drag and drop ---------------------------- */
+
+  const endDrag = () => {
+    draggedEntryRef.current = null;
+    setDraggingId(null);
+    setDragOverDay(null);
+  };
+
+  const dropOnDay = async (dateKey: string, duplicate: boolean) => {
+    const entry = draggedEntryRef.current;
+    endDrag();
+    if (!entry || entry.date === dateKey) return;
+    const ts = Date.now();
+    if (duplicate) {
+      await db.entries.put({ ...entry, id: uid(), date: dateKey, createdAt: ts, updatedAt: ts });
+      toast('Entry duplicated');
+    } else {
+      await db.entries.update(entry.id, { date: dateKey, updatedAt: ts });
+      toast('Entry moved');
+    }
   };
 
   /* --------------------------------- render -------------------------------- */
@@ -224,7 +249,22 @@ export function WeekView({ settings, clients, projects, onGoToClients }: WeekVie
             const dayMinutes = dayEntries.reduce((sum, e) => sum + e.minutes, 0);
             const label = dayLabel(day);
             return (
-              <section key={key} className={`day-col ${isToday(day) ? 'day-today' : ''}`}>
+              <section
+                key={key}
+                className={`day-col ${isToday(day) ? 'day-today' : ''} ${
+                  dragOverDay === key && draggingId ? 'day-drop-target' : ''
+                }`}
+                onDragOver={(e) => {
+                  if (!draggingId) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = e.altKey ? 'copy' : 'move';
+                  if (dragOverDay !== key) setDragOverDay(key);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  void dropOnDay(key, e.altKey);
+                }}
+              >
                 <header className="day-head">
                   <span className="day-name">
                     {label.weekday} <strong>{label.day}</strong>
@@ -241,9 +281,18 @@ export function WeekView({ settings, clients, projects, onGoToClients }: WeekVie
                     return (
                       <button
                         key={entry.id}
-                        className="entry-card"
+                        className={`entry-card ${draggingId === entry.id ? 'entry-dragging' : ''}`}
                         style={{ borderLeftColor: project?.color ?? 'var(--border)' }}
                         onClick={() => setModal({ kind: 'edit', entry })}
+                        draggable
+                        onDragStart={(e) => {
+                          draggedEntryRef.current = entry;
+                          setDraggingId(entry.id);
+                          e.dataTransfer.effectAllowed = 'copyMove';
+                          e.dataTransfer.setData('text/plain', entry.id);
+                        }}
+                        onDragEnd={endDrag}
+                        title="Drag to another day to move it (hold Alt to copy)"
                         type="button"
                       >
                         <span className="entry-top">

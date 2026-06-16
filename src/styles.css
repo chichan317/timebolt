@@ -784,6 +784,12 @@ h2 {
   box-shadow: 0 0 0 1px var(--accent);
 }
 
+.day-drop-target {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+  background: var(--accent-soft);
+}
+
 .day-head {
   display: flex;
   align-items: center;
@@ -832,9 +838,14 @@ h2 {
   border-left: 3px solid var(--border);
   border-radius: 8px;
   padding: 7px 9px;
-  cursor: pointer;
+  cursor: grab;
   color: var(--text);
-  transition: border-color 120ms, transform 80ms;
+  transition: border-color 120ms, transform 80ms, opacity 120ms;
+}
+
+.entry-card.entry-dragging {
+  opacity: 0.4;
+  cursor: grabbing;
 }
 
 .entry-card:hover {
