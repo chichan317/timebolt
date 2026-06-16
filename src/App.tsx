@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useClients, useProjects, useSettings } from './hooks/useData';
 import { useTimer } from './hooks/useTimer';
+import { SyncContext, useSync } from './hooks/useSync';
 import { TimerBar } from './components/TimerBar';
 import { BackupBanner } from './components/BackupBanner';
 import { requestPersistence } from './lib/storage';
@@ -45,6 +46,8 @@ export default function App() {
   const clients = useClients();
   const projects = useProjects();
   const timerApi = useTimer();
+  // Runs at the root so sync keeps listening for changes on every page.
+  const sync = useSync();
 
   // Ask the browser to never auto-evict our IndexedDB data.
   useEffect(() => {
@@ -80,6 +83,7 @@ export default function App() {
   const goToClients = useCallback(() => navigate('clients'), [navigate]);
 
   return (
+    <SyncContext.Provider value={sync}>
     <div className="app">
       <aside className="sidebar">
         <div className="brand">
@@ -144,5 +148,6 @@ export default function App() {
         </main>
       </div>
     </div>
+    </SyncContext.Provider>
   );
 }

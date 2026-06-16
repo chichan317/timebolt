@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { subscribeDataChanged } from '../db';
 import { buildBackupData, restoreBackup } from '../lib/backup';
 import {
@@ -206,4 +206,18 @@ export function useSync(): SyncState & {
   const syncNow = useCallback(() => void runSync(), [runSync]);
 
   return { status, lastSyncedAt, error, config, connect, disconnect, syncNow };
+}
+
+/* --------------------------- shared at app root --------------------------- */
+/* useSync runs once at the app root so it keeps listening for data changes on
+   every page, not only while Settings is open. Components read it via context. */
+
+export type SyncApi = ReturnType<typeof useSync>;
+
+export const SyncContext = createContext<SyncApi | null>(null);
+
+export function useSyncContext(): SyncApi {
+  const ctx = useContext(SyncContext);
+  if (!ctx) throw new Error('useSyncContext must be used within a SyncContext provider');
+  return ctx;
 }

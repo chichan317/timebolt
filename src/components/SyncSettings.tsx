@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSync, type SyncStatus } from '../hooks/useSync';
+import { useSyncContext, type SyncStatus } from '../hooks/useSync';
 import { useToast } from './ui';
 
 const STATUS_LABEL: Record<SyncStatus, string> = {
@@ -22,7 +22,7 @@ function timeAgo(ms: number): string {
 
 export function SyncSettings() {
   const toast = useToast();
-  const sync = useSync();
+  const sync = useSyncContext();
   const [url, setUrl] = useState('');
   const [token, setToken] = useState('');
   const [connecting, setConnecting] = useState(false);
