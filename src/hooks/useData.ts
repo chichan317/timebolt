@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo } from 'react';
 import { db, getSettings } from '../db';
-import type { Client, Project, Settings } from '../types';
+import type { Client, Project, Settings, WorkTemplate } from '../types';
 import { DEFAULT_SETTINGS } from '../types';
 
 /** Live settings; falls back to defaults while IndexedDB loads. */
@@ -21,6 +21,14 @@ export function useClients(): Client[] | undefined {
 export function useProjects(): Project[] | undefined {
   return useLiveQuery(
     () => db.projects.toArray().then((p) => p.sort((a, b) => a.name.localeCompare(b.name))),
+    [],
+  );
+}
+
+/** All quick-work templates, newest first. Undefined while loading. */
+export function useTemplates(): WorkTemplate[] | undefined {
+  return useLiveQuery(
+    () => db.templates.toArray().then((t) => t.sort((a, b) => b.createdAt - a.createdAt)),
     [],
   );
 }

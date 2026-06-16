@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Client, Project, Settings, TimeEntry } from './types';
+import type { Client, Project, Settings, TimeEntry, WorkTemplate } from './types';
 import { DEFAULT_SETTINGS } from './types';
 
 class TimeBoltDB extends Dexie {
@@ -7,6 +7,7 @@ class TimeBoltDB extends Dexie {
   projects!: Table<Project, string>;
   entries!: Table<TimeEntry, string>;
   settings!: Table<Settings, string>;
+  templates!: Table<WorkTemplate, string>;
 
   constructor() {
     super('timebolt');
@@ -15,6 +16,10 @@ class TimeBoltDB extends Dexie {
       projects: 'id, clientId, archived',
       entries: 'id, projectId, date',
       settings: 'id',
+    });
+    // v2 adds reusable "common work" templates.
+    this.version(2).stores({
+      templates: 'id, projectId',
     });
   }
 }
@@ -41,7 +46,7 @@ export function subscribeDataChanged(cb: () => void): () => void {
   return () => dataChangeListeners.delete(cb);
 }
 
-for (const table of [db.clients, db.projects, db.entries, db.settings]) {
+for (const table of [db.clients, db.projects, db.entries, db.settings, db.templates]) {
   table.hook('creating', () => {
     notifyDataChanged();
   });
@@ -67,22 +72,24 @@ export async function entriesBetween(from: string, to: string): Promise<TimeEntr
   return db.entries.where('date').between(from, to, true, true).toArray();
 }
 
-/** Delete a project and every entry tracked against it. */
+/** Delete a project and every entry and template tied to it. */
 export async function deleteProjectCascade(projectId: string): Promise<void> {
-  await db.transaction('rw', db.projects, db.entries, async () => {
+  await db.transaction('rw', db.projects, db.entries, db.templates, async () => {
     await db.entries.where('projectId').equals(projectId).delete();
+    await db.templates.where('projectId').equals(projectId).delete();
     await db.projects.delete(projectId);
   });
 }
 
-/** Delete a client, its projects, and all of their entries. */
+/** Delete a client, its projects, and all of their entries and templates. */
 export async function deleteClientCascade(clientId: string): Promise<void> {
-  await db.transaction('rw', db.clients, db.projects, db.entries, async () => {
+  await db.transaction('rw', db.clients, db.projects, db.entries, db.templates, async () => {
     const projectIds = (await db.projects.where('clientId').equals(clientId).toArray()).map(
       (p) => p.id,
     );
     if (projectIds.length > 0) {
       await db.entries.where('projectId').anyOf(projectIds).delete();
+      await db.templates.where('projectId').anyOf(projectIds).delete();
       await db.projects.bulkDelete(projectIds);
     }
     await db.clients.delete(clientId);
@@ -105,10 +112,15 @@ export async function projectUsage(projectId: string): Promise<number> {
 
 /** Wipe everything (used by Settings -> danger zone and JSON import). */
 export async function clearAllData(): Promise<void> {
-  await db.transaction('rw', db.clients, db.projects, db.entries, db.settings, async () => {
-    await db.clients.clear();
-    await db.projects.clear();
-    await db.entries.clear();
-    await db.settings.clear();
-  });
+  await db.transaction(
+    'rw',
+    [db.clients, db.projects, db.entries, db.settings, db.templates],
+    async () => {
+      await db.clients.clear();
+      await db.projects.clear();
+      await db.entries.clear();
+      await db.settings.clear();
+      await db.templates.clear();
+    },
+  );
 }

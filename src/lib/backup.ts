@@ -1,16 +1,17 @@
 import { db, clearAllData, getSettings } from '../db';
-import type { BackupFile, Client, Project, Settings, TimeEntry } from '../types';
+import type { BackupFile, Client, Project, Settings, TimeEntry, WorkTemplate } from '../types';
 import { DEFAULT_SETTINGS } from '../types';
 import { downloadFile } from './csv';
 import { markBackupDone } from './storage';
 
 /** Build the full backup document (the single source of truth for the data). */
 export async function buildBackupData(): Promise<BackupFile> {
-  const [settings, clients, projects, entries] = await Promise.all([
+  const [settings, clients, projects, entries, templates] = await Promise.all([
     getSettings(),
     db.clients.toArray(),
     db.projects.toArray(),
     db.entries.toArray(),
+    db.templates.toArray(),
   ]);
   return {
     app: 'timebolt',
@@ -20,6 +21,7 @@ export async function buildBackupData(): Promise<BackupFile> {
     clients,
     projects,
     entries,
+    templates,
   };
 }
 
@@ -59,6 +61,16 @@ function validEntry(v: unknown): v is TimeEntry {
   );
 }
 
+function validTemplate(v: unknown): v is WorkTemplate {
+  return (
+    isRecord(v) &&
+    typeof v.id === 'string' &&
+    typeof v.projectId === 'string' &&
+    typeof v.minutes === 'number' &&
+    v.minutes > 0
+  );
+}
+
 /** Parse + validate a backup file. Throws with a readable message on bad input. */
 export function parseBackup(text: string): BackupFile {
   let data: unknown;
@@ -76,6 +88,7 @@ export function parseBackup(text: string): BackupFile {
   const clients = Array.isArray(data.clients) ? data.clients.filter(validClient) : [];
   const projects = Array.isArray(data.projects) ? data.projects.filter(validProject) : [];
   const entries = Array.isArray(data.entries) ? data.entries.filter(validEntry) : [];
+  const templates = Array.isArray(data.templates) ? data.templates.filter(validTemplate) : [];
   const settings: Settings = isRecord(data.settings)
     ? { ...DEFAULT_SETTINGS, ...(data.settings as Partial<Settings>), id: 'settings' }
     : DEFAULT_SETTINGS;
@@ -87,16 +100,22 @@ export function parseBackup(text: string): BackupFile {
     clients,
     projects,
     entries,
+    templates,
   };
 }
 
 /** Replace the entire database with the backup's contents. */
 export async function restoreBackup(backup: BackupFile): Promise<void> {
   await clearAllData();
-  await db.transaction('rw', db.clients, db.projects, db.entries, db.settings, async () => {
-    await db.clients.bulkPut(backup.clients);
-    await db.projects.bulkPut(backup.projects);
-    await db.entries.bulkPut(backup.entries);
-    await db.settings.put(backup.settings);
-  });
+  await db.transaction(
+    'rw',
+    [db.clients, db.projects, db.entries, db.settings, db.templates],
+    async () => {
+      await db.clients.bulkPut(backup.clients);
+      await db.projects.bulkPut(backup.projects);
+      await db.entries.bulkPut(backup.entries);
+      await db.settings.put(backup.settings);
+      await db.templates.bulkPut(backup.templates ?? []);
+    },
+  );
 }

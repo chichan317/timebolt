@@ -46,6 +46,17 @@ export interface TimeEntry {
   updatedAt: number;
 }
 
+/** A reusable "common work" entry added to a day in one click. */
+export interface WorkTemplate {
+  id: ID;
+  projectId: ID;
+  note: string;
+  /** Default duration in whole minutes. */
+  minutes: number;
+  billable: boolean;
+  createdAt: number;
+}
+
 /** 0 = Sunday, 1 = Monday, 6 = Saturday. */
 export type WeekStart = 0 | 1 | 6;
 
@@ -89,6 +100,8 @@ export interface BackupFile {
   clients: Client[];
   projects: Project[];
   entries: TimeEntry[];
+  /** Optional for backward compatibility with backups made before templates. */
+  templates?: WorkTemplate[];
 }
 
 /**

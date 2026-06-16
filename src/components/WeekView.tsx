@@ -12,7 +12,7 @@ import {
   weekRangeLabel,
 } from '../lib/time';
 import { entryAmount, formatMoney, resolveRate, sumTotals } from '../lib/money';
-import { useClientMap, useProjectMap } from '../hooks/useData';
+import { useClientMap, useProjectMap, useTemplates } from '../hooks/useData';
 import { EntryModal } from './EntryModal';
 import { BoltIcon, ConfirmDialog, EmptyState, Icon, useToast } from './ui';
 
@@ -36,6 +36,8 @@ export function WeekView({ settings, clients, projects, onGoToClients }: WeekVie
   );
   const [modal, setModal] = useState<ModalState>({ kind: 'closed' });
   const [copyPrompt, setCopyPrompt] = useState<TimeEntry[] | null>(null);
+  const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
+  const templates = useTemplates();
 
   const days = useMemo(() => weekDays(anchor, settings.weekStart), [anchor, settings.weekStart]);
   const visibleDays = useMemo(
@@ -100,6 +102,32 @@ export function WeekView({ settings, clients, projects, onGoToClients }: WeekVie
     toast(`Copied ${cloned.length} ${cloned.length === 1 ? 'entry' : 'entries'} from last week`);
   };
 
+  /* ------------------------------ quick templates -------------------------- */
+
+  const addFromTemplate = async (templateId: string) => {
+    const t = (templates ?? []).find((x) => x.id === templateId);
+    if (!t) return;
+    const timestamp = Date.now();
+    await db.entries.put({
+      id: uid(),
+      projectId: t.projectId,
+      date: toDateKey(new Date()),
+      minutes: t.minutes,
+      note: t.note,
+      billable: t.billable,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+    const project = projectById.get(t.projectId);
+    toast(`Added ${project?.name ?? 'entry'} to today`);
+  };
+
+  const removeTemplate = async (templateId: string) => {
+    await db.templates.delete(templateId);
+    setDeleteTemplateId(null);
+    toast('Template removed');
+  };
+
   /* --------------------------------- render -------------------------------- */
 
   const hasAnyProjects = projects.some((p) => !p.archived);
@@ -137,6 +165,45 @@ export function WeekView({ settings, clients, projects, onGoToClients }: WeekVie
           </button>
         </div>
       </div>
+
+      {templates && templates.filter((t) => projectById.has(t.projectId)).length > 0 && (
+        <div className="quick-add">
+          <span className="quick-add-label">Quick add to today</span>
+          <div className="quick-chips">
+            {templates
+              .filter((t) => projectById.has(t.projectId))
+              .map((t) => {
+                const project = projectById.get(t.projectId);
+                const client = project ? clientById.get(project.clientId) : undefined;
+                return (
+                  <span key={t.id} className="chip">
+                    <button
+                      className="chip-add"
+                      style={{ borderLeftColor: project?.color ?? 'var(--border)' }}
+                      onClick={() => void addFromTemplate(t.id)}
+                      type="button"
+                    >
+                      <Icon name="plus" size={12} />
+                      {client ? `${client.name} · ` : ''}
+                      {project?.name}
+                      {t.note ? ` · ${t.note}` : ''}
+                      <span className="chip-dur">{formatMinutes(t.minutes, settings.timeFormat)}</span>
+                    </button>
+                    <button
+                      className="chip-del"
+                      onClick={() => setDeleteTemplateId(t.id)}
+                      aria-label="Delete template"
+                      title="Delete template"
+                      type="button"
+                    >
+                      <Icon name="x" size={12} />
+                    </button>
+                  </span>
+                );
+              })}
+          </div>
+        </div>
+      )}
 
       {!hasAnyProjects && weekIsEmpty ? (
         <EmptyState
@@ -248,6 +315,16 @@ export function WeekView({ settings, clients, projects, onGoToClients }: WeekVie
           confirmLabel="Copy entries"
           onConfirm={() => void copyLastWeek(copyPrompt)}
           onCancel={() => setCopyPrompt(null)}
+        />
+      )}
+      {deleteTemplateId && (
+        <ConfirmDialog
+          title="Delete this template?"
+          message="This removes the quick-add template. Your existing time entries are not affected."
+          confirmLabel="Delete template"
+          danger
+          onConfirm={() => void removeTemplate(deleteTemplateId)}
+          onCancel={() => setDeleteTemplateId(null)}
         />
       )}
     </div>

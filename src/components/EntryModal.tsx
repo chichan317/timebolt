@@ -92,6 +92,27 @@ export function EntryModal({ entry, defaultDate, clients, projects, onClose }: E
     onClose();
   };
 
+  const saveAsTemplate = async () => {
+    const minutes = parseDuration(duration);
+    if (projectId === '') {
+      setError('Pick a project first.');
+      return;
+    }
+    if (minutes === null) {
+      setError('Add a duration before saving as a template.');
+      return;
+    }
+    await db.templates.put({
+      id: uid(),
+      projectId,
+      note: note.trim(),
+      minutes,
+      billable,
+      createdAt: Date.now(),
+    });
+    toast('Saved as a quick template');
+  };
+
   if (selectable.length === 0) {
     return (
       <Modal title="No projects yet" onClose={onClose}>
@@ -119,6 +140,14 @@ export function EntryModal({ entry, defaultDate, clients, projects, onClose }: E
                 Delete
               </button>
             )}
+            <button
+              className="btn btn-sm"
+              onClick={() => void saveAsTemplate()}
+              title="Save this project, note and duration as a one-click template"
+              type="button"
+            >
+              Save as template
+            </button>
             <span className="spacer" />
             <button className="btn" onClick={onClose} type="button">
               Cancel
