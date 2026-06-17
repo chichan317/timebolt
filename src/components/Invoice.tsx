@@ -11,7 +11,7 @@ import {
   resolveRate,
 } from '../lib/money';
 import { shortDateLabel } from '../lib/time';
-import { BoltIcon, Icon } from './ui';
+import { Icon } from './ui';
 
 interface InvoiceProps {
   settings: Settings;
@@ -60,9 +60,24 @@ export function Invoice({
   onClose,
 }: InvoiceProps) {
   const [notes, setNotes] = useState('');
-  const business = settings.business;
-  const hasBusiness = Boolean(business?.name.trim());
   const symbol = currencySymbol(settings.currency);
+  const issueDate = new Date().toISOString().slice(0, 10);
+  const business = settings.business;
+
+  // Every field below is editable on the invoice (one-off overrides, not saved),
+  // seeded from your business profile / the chosen client / sensible defaults.
+  const [bizName, setBizName] = useState(business?.name ?? '');
+  const [bizAbn, setBizAbn] = useState(business?.abn ? `ABN ${business.abn}` : '');
+  const [bizAddress, setBizAddress] = useState(business?.address ?? '');
+  const [bizEmail, setBizEmail] = useState(business?.email ?? '');
+  const [bizPayment, setBizPayment] = useState(business?.payment ?? '');
+  const [invoiceNo, setInvoiceNo] = useState(`INV-${issueDate.replace(/-/g, '')}`);
+  const [issued, setIssued] = useState(shortDateLabel(issueDate));
+  const [period, setPeriod] = useState(`${shortDateLabel(from)} – ${shortDateLabel(to)}`);
+  const [billName, setBillName] = useState('');
+  const [billAbn, setBillAbn] = useState('');
+  const [billAddress, setBillAddress] = useState('');
+  const [billEmail, setBillEmail] = useState('');
 
   const clientsWithWork = useMemo(() => {
     const ids = new Set<string>();
@@ -82,7 +97,6 @@ export function Invoice({
     }
     return clientsWithWork[0]?.id ?? '';
   });
-  const client = clientById.get(clientId);
 
   const seedLines = useCallback(
     (cid: string): Line[] => {
@@ -132,7 +146,12 @@ export function Invoice({
   const [lines, setLines] = useState<Line[]>(() => seedLines(clientId));
   useEffect(() => {
     setLines(seedLines(clientId));
-  }, [clientId, seedLines]);
+    const c = clientById.get(clientId);
+    setBillName(c?.name ?? '');
+    setBillAbn(c?.abn ? `ABN ${c.abn}` : '');
+    setBillAddress(c?.address ?? '');
+    setBillEmail(c?.email ?? '');
+  }, [clientId, seedLines, clientById]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -143,8 +162,6 @@ export function Invoice({
   }, [onClose]);
 
   const total = lines.reduce((sum, l) => sum + (parseFloat(l.amount) || 0), 0);
-  const issueDate = new Date().toISOString().slice(0, 10);
-  const invoiceNumber = `INV-${issueDate.replace(/-/g, '')}`;
 
   const editLine = (id: string, patch: Partial<Line>) =>
     setLines((ls) => ls.map((l) => (l.id === id ? { ...l, ...patch } : l)));
@@ -178,39 +195,72 @@ export function Invoice({
       <div className="invoice-sheet">
         <header className="invoice-head">
           <div className="invoice-brand">
-            <span className="invoice-bolt">
-              <BoltIcon size={22} />
-            </span>
-            {hasBusiness ? (
-              <div className="invoice-from">
-                <span className="invoice-business-name">{business?.name}</span>
-                {business?.abn && <span className="invoice-from-line">ABN {business.abn}</span>}
-                {business?.address && (
-                  <span className="invoice-from-line invoice-multiline">{business.address}</span>
-                )}
-                {business?.email && <span className="invoice-from-line">{business.email}</span>}
-              </div>
-            ) : (
-              <span className="invoice-business-placeholder">
-                Add your details in Settings → Business details
-              </span>
-            )}
+            <div className="invoice-from">
+              <input
+                className="invoice-edit-text invoice-business-name"
+                value={bizName}
+                onChange={(e) => setBizName(e.target.value)}
+                placeholder="Your business name"
+                aria-label="Your business name"
+              />
+              <input
+                className="invoice-edit-text invoice-from-line"
+                value={bizAbn}
+                onChange={(e) => setBizAbn(e.target.value)}
+                placeholder="ABN"
+                aria-label="Your ABN"
+              />
+              <textarea
+                className="invoice-edit-text invoice-from-line"
+                value={bizAddress}
+                onChange={(e) => setBizAddress(e.target.value)}
+                placeholder="Address"
+                aria-label="Your address"
+                rows={2}
+              />
+              <input
+                className="invoice-edit-text invoice-from-line"
+                value={bizEmail}
+                onChange={(e) => setBizEmail(e.target.value)}
+                placeholder="Email"
+                aria-label="Your email"
+              />
+            </div>
           </div>
           <div className="invoice-meta">
             <h1>Invoice</h1>
             <dl>
               <div>
                 <dt>Invoice no.</dt>
-                <dd>{invoiceNumber}</dd>
+                <dd>
+                  <input
+                    className="invoice-edit-text invoice-meta-input"
+                    value={invoiceNo}
+                    onChange={(e) => setInvoiceNo(e.target.value)}
+                    aria-label="Invoice number"
+                  />
+                </dd>
               </div>
               <div>
                 <dt>Issued</dt>
-                <dd>{shortDateLabel(issueDate)}</dd>
+                <dd>
+                  <input
+                    className="invoice-edit-text invoice-meta-input"
+                    value={issued}
+                    onChange={(e) => setIssued(e.target.value)}
+                    aria-label="Issue date"
+                  />
+                </dd>
               </div>
               <div>
                 <dt>Period</dt>
                 <dd>
-                  {shortDateLabel(from)} – {shortDateLabel(to)}
+                  <input
+                    className="invoice-edit-text invoice-meta-input"
+                    value={period}
+                    onChange={(e) => setPeriod(e.target.value)}
+                    aria-label="Billing period"
+                  />
                 </dd>
               </div>
             </dl>
@@ -219,12 +269,35 @@ export function Invoice({
 
         <div className="invoice-billto">
           <span className="invoice-label">Bill to</span>
-          <span className="invoice-client">{client?.name ?? '—'}</span>
-          {client?.abn && <span className="invoice-billto-line">ABN {client.abn}</span>}
-          {client?.address && (
-            <span className="invoice-billto-line invoice-multiline">{client.address}</span>
-          )}
-          {client?.email && <span className="invoice-billto-line">{client.email}</span>}
+          <input
+            className="invoice-edit-text invoice-client"
+            value={billName}
+            onChange={(e) => setBillName(e.target.value)}
+            placeholder="Client name"
+            aria-label="Bill-to name"
+          />
+          <input
+            className="invoice-edit-text invoice-billto-line"
+            value={billAbn}
+            onChange={(e) => setBillAbn(e.target.value)}
+            placeholder="ABN"
+            aria-label="Bill-to ABN"
+          />
+          <textarea
+            className="invoice-edit-text invoice-billto-line"
+            value={billAddress}
+            onChange={(e) => setBillAddress(e.target.value)}
+            placeholder="Address"
+            aria-label="Bill-to address"
+            rows={2}
+          />
+          <input
+            className="invoice-edit-text invoice-billto-line"
+            value={billEmail}
+            onChange={(e) => setBillEmail(e.target.value)}
+            placeholder="Email"
+            aria-label="Bill-to email"
+          />
         </div>
 
         {clientsWithWork.length === 0 ? (
@@ -289,12 +362,17 @@ export function Invoice({
           </div>
         )}
 
-        {business?.payment.trim() && (
-          <div className="invoice-payment">
-            <span className="invoice-label">Payment</span>
-            <p className="invoice-payment-text invoice-multiline">{business.payment}</p>
-          </div>
-        )}
+        <label className="invoice-payment">
+          <span className="invoice-label">Payment</span>
+          <textarea
+            className="invoice-edit-text"
+            value={bizPayment}
+            onChange={(e) => setBizPayment(e.target.value)}
+            placeholder="Bank details / payment instructions"
+            aria-label="Payment details"
+            rows={2}
+          />
+        </label>
 
         <label className="invoice-notes">
           <span className="invoice-label">Notes</span>

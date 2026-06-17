@@ -2198,6 +2198,43 @@ select:focus,
   background: #f5f6fb;
 }
 
+/* Editable header / bill-to / meta / payment fields. Keep the type from the
+   class they share with the old display elements; only reset the input chrome
+   (so font-size/weight is not clobbered). */
+.invoice-edit-text {
+  font-family: inherit;
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed #d2d6e1;
+  border-radius: 0;
+  padding: 2px 1px;
+  width: 100%;
+  max-width: 100%;
+  resize: vertical;
+}
+
+.invoice-edit-text:focus {
+  outline: none;
+  border-bottom-color: #4f46e5;
+  box-shadow: none;
+}
+
+input.invoice-business-name {
+  padding: 0 1px 3px;
+}
+
+.invoice-meta-input {
+  width: 170px;
+  text-align: right;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.invoice-billto input.invoice-client {
+  padding: 2px 1px;
+  margin: 2px 0;
+}
+
 .invoice-total {
   display: flex;
   justify-content: space-between;
@@ -2285,8 +2322,15 @@ select:focus,
   }
 
   .invoice-notes textarea,
-  .invoice-line-input {
+  .invoice-line-input,
+  .invoice-edit-text {
     border-color: transparent !important;
+    resize: none;
+  }
+
+  /* Don't leave blank lines for editable fields the user left empty. */
+  .invoice-edit-text:placeholder-shown {
+    display: none !important;
   }
 
   /* Editing-only controls never print. */
