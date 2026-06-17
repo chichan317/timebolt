@@ -9,16 +9,18 @@ import { WeekView } from './components/WeekView';
 import { Dashboard } from './components/Dashboard';
 import { Reports } from './components/Reports';
 import { Clients } from './components/Clients';
+import { Clocks } from './components/Clocks';
 import { SettingsPage } from './components/SettingsPage';
 import { BoltIcon, Icon, type IconName } from './components/ui';
 
-type Route = 'week' | 'dashboard' | 'reports' | 'clients' | 'settings';
+type Route = 'week' | 'dashboard' | 'reports' | 'clients' | 'clocks' | 'settings';
 
 const ROUTES: { id: Route; label: string; icon: IconName }[] = [
   { id: 'week', label: 'Week', icon: 'week' },
   { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
   { id: 'reports', label: 'Reports', icon: 'reports' },
   { id: 'clients', label: 'Clients', icon: 'clients' },
+  { id: 'clocks', label: 'Clocks', icon: 'clock' },
   { id: 'settings', label: 'Settings', icon: 'settings' },
 ];
 
@@ -142,6 +144,8 @@ export default function App() {
             <Reports settings={settings} clients={allClients} projects={allProjects} />
           ) : route === 'clients' ? (
             <Clients settings={settings} clients={allClients} projects={allProjects} />
+          ) : route === 'clocks' ? (
+            <Clocks settings={settings} />
           ) : (
             <SettingsPage settings={settings} clients={allClients} projects={allProjects} />
           )}

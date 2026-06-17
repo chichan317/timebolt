@@ -1,6 +1,7 @@
 import { parseDuration, roundMinutes, startOfWeek, weekDays, toDateKey, formatMinutes } from '../src/lib/time';
 import { entryAmount, isRetainer, resolveRate } from '../src/lib/money';
 import { decideSync } from '../src/lib/sync';
+import { wallTimeToUtc, localMinutesOfDay } from '../src/lib/clock';
 import type { Client, Project, Settings, TimeEntry } from '../src/types';
 import { DEFAULT_SETTINGS } from '../src/types';
 
@@ -96,5 +97,17 @@ eq(decide({ serverVersion: 3, lastSyncVersion: 1 }), 'pull', 'sync: server ahead
 eq(decide({ dirty: true, serverVersion: 3, lastSyncVersion: 1, localModifiedAt: 200, serverUpdatedAt: 100 }), 'conflict-push', 'sync: both changed, local newer -> push');
 eq(decide({ dirty: true, serverVersion: 3, lastSyncVersion: 1, localModifiedAt: 100, serverUpdatedAt: 200 }), 'conflict-pull', 'sync: both changed, server newer -> pull');
 eq(decide({ dirty: true, serverVersion: 2, lastSyncVersion: 2 }), 'push', 'sync: dirty, already at server version -> push');
+
+// --- timezone conversion (DST-aware) ---
+// Adelaide in June = ACST (UTC+9:30): 10:00 local -> 00:30 UTC same day.
+eq(wallTimeToUtc('2026-06-18', 600, 'Australia/Adelaide'), Date.UTC(2026, 5, 18, 0, 30), 'tz: Adelaide June +9:30');
+// Adelaide in January = ACDT (UTC+10:30): 10:00 local -> previous day 23:30 UTC.
+eq(wallTimeToUtc('2026-01-15', 600, 'Australia/Adelaide'), Date.UTC(2026, 0, 14, 23, 30), 'tz: Adelaide Jan +10:30 (DST)');
+// Perth always UTC+8: 10:00 local -> 02:00 UTC.
+eq(wallTimeToUtc('2026-06-18', 600, 'Australia/Perth'), Date.UTC(2026, 5, 18, 2, 0), 'tz: Perth +8');
+// Bogotá always UTC-5: 10:00 local -> 15:00 UTC.
+eq(wallTimeToUtc('2026-06-18', 600, 'America/Bogota'), Date.UTC(2026, 5, 18, 15, 0), 'tz: Bogota -5');
+// Round-trip: the instant reads back as 10:00 (600 min) local.
+eq(localMinutesOfDay(wallTimeToUtc('2026-06-18', 600, 'Australia/Adelaide'), 'Australia/Adelaide'), 600, 'tz: round-trip minutes');
 
 console.log('done');

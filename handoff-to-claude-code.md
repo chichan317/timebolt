@@ -138,6 +138,7 @@ There is a standalone reference mockup at **`docs/dashboard-preview.html`** (ope
 12. ✅ **Drag-and-drop** in `WeekView` — drag an entry to another day (move), Alt to duplicate. Desktop/mouse only.
 13. ✅ **Invoice details** — saved business profile (`Settings.business`: name/ABN/address/email/payment, edited in Settings → Business details) + per-client billing details (`Client.address/email/abn`). The invoice auto-fills both. GST/numbering deferred.
 14. ✅ **Shared running timer** — the timer rides the sync payload (`BackupFile.timer`, transient; storage in `lib/timerStore.ts`). Start on one device, see/control it on another after open/focus. `useTimer` calls `notifyDataChanged()` on changes; `useSync` applies a pulled timer via `applyExternalTimer` (no loop). `restoreBackup` ignores `timer`.
+15. ✅ **Clocks page** — world clock + timeanddate-style converter (`components/Clocks.tsx`, `lib/clock.ts`). Per-city day/night colour bars + a shared time scrubber; DST-correct via IANA + `Intl` (no fixed offsets; tested). Cities configurable from `CITY_PRESETS`, stored in `Settings.clocks` (synced). New `clocks` route + `clock` icon.
 
 **Open / nice-to-have ideas (not started):**
 - Dashboard extras the owner deferred: week-over-week comparison, goals/streaks, daily activity mini-chart.

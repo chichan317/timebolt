@@ -74,6 +74,13 @@ export type TimeFormat = 'hm' | 'decimal';
 
 export type ThemePref = 'system' | 'light' | 'dark';
 
+/** A city shown on the Clocks page. `timeZone` is an IANA name. */
+export interface ClockCity {
+  id: ID;
+  label: string;
+  timeZone: string;
+}
+
 /** Your own business details, shown on invoices. Saved once in Settings. */
 export interface BusinessProfile {
   name: string;
@@ -88,6 +95,8 @@ export interface Settings {
   id: 'settings';
   /** Your invoicing business details. Optional until filled in. */
   business?: BusinessProfile;
+  /** Cities shown on the Clocks page. Undefined → defaults. */
+  clocks?: ClockCity[];
   /** ISO 4217 currency code, e.g. 'USD', 'AUD'. */
   currency: string;
   weekStart: WeekStart;

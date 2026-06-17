@@ -178,7 +178,8 @@ export type IconName =
   | 'pause'
   | 'x'
   | 'plus'
-  | 'invoice';
+  | 'invoice'
+  | 'clock';
 
 const ICON_PATHS: Record<IconName, ReactNode> = {
   week: (
@@ -220,6 +221,12 @@ const ICON_PATHS: Record<IconName, ReactNode> = {
     <>
       <path d="M6 2h9l3 3v15l-2.5-1.5L13 20l-2.5-1.5L8 20l-2.5-1.5L4 20V4a2 2 0 0 1 2-2z" />
       <path d="M8 7h6M8 11h6M8 15h4" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
     </>
   ),
 };

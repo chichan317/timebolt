@@ -673,6 +673,224 @@ h2 {
   color: var(--danger);
 }
 
+/* -------------------------------- clocks --------------------------------- */
+
+.clocks-controls {
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.clocks-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.clock-add-select {
+  max-width: 180px;
+}
+
+.clocks-refline {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 18px 0 10px;
+  flex-wrap: wrap;
+}
+
+.clocks-ref-time {
+  font-size: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.clocks-ref-date {
+  color: var(--muted);
+  font-weight: 550;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.clocks-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent);
+}
+
+.clocks-slider {
+  width: 100%;
+  margin: 6px 0 18px;
+  accent-color: var(--accent);
+}
+
+.clocks-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.clock-row {
+  display: grid;
+  grid-template-columns: 150px 150px 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.clock-row-ref {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.clock-head {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  position: relative;
+}
+
+.clock-name {
+  font-weight: 650;
+}
+
+.clock-offset {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.clock-remove {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.clock-row:hover .clock-remove {
+  opacity: 1;
+}
+
+.clock-remove:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.clock-when {
+  display: flex;
+  flex-direction: column;
+}
+
+.clock-time {
+  font-size: 19px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock-date {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.clock-daydiff {
+  margin-left: 6px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.clock-bar {
+  position: relative;
+  display: flex;
+  height: 26px;
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.clock-seg {
+  flex: 1;
+}
+
+.seg-day {
+  background: #34d399;
+}
+
+.seg-fringe {
+  background: #fbbf24;
+}
+
+.seg-night {
+  background: #64748b;
+}
+
+.clock-marker {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--text);
+  transform: translateX(-1px);
+}
+
+.clock-marker::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--text);
+  transform: translateX(-50%);
+}
+
+.clocks-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.clocks-legend .clock-seg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+@media (max-width: 640px) {
+  .clock-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 12px;
+  }
+  .clock-bar {
+    grid-column: 1 / -1;
+  }
+}
+
 /* ----------------------------- donut + legend ---------------------------- */
 
 .byproject {
