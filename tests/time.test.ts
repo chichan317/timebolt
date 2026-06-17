@@ -1,5 +1,5 @@
 import { parseDuration, roundMinutes, startOfWeek, weekDays, toDateKey, formatMinutes } from '../src/lib/time';
-import { entryAmount, isRetainer, resolveRate } from '../src/lib/money';
+import { entryAmount, isFixedPrice, isRetainer, resolveRate } from '../src/lib/money';
 import { decideSync } from '../src/lib/sync';
 import { wallTimeToUtc, localMinutesOfDay } from '../src/lib/clock';
 import type { Client, Project, Settings, TimeEntry } from '../src/types';
@@ -84,6 +84,14 @@ eq(isRetainer({ ...retainerClient, retainerAmount: 0 }), false, 'isRetainer: fal
 eq(isRetainer(undefined), false, 'isRetainer: false for undefined');
 // rate is 0 even though hourlyRate is 200 and the project sets its own rate
 eq(resolveRate(proj(150), retainerClient), 0, 'retainer: rate forced to 0');
+
+// --- fixed-price projects: tracked but billed a flat amount, not hourly ---
+const fixedProj: Project = { ...proj(200), fixedPrice: 1500 };
+eq(isFixedPrice(fixedProj), true, 'isFixedPrice: true when price set');
+eq(isFixedPrice(proj(120)), false, 'isFixedPrice: false for hourly project');
+eq(isFixedPrice({ ...proj(null), fixedPrice: 0 }), false, 'isFixedPrice: false when price 0');
+// fixed-price wins over the hourly rate -> resolveRate is 0
+eq(resolveRate(fixedProj, client), 0, 'fixed price: rate forced to 0');
 
 // --- sync decision logic ---
 const decide = (o: Partial<Parameters<typeof decideSync>[0]>) =>

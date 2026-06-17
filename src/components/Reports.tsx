@@ -11,7 +11,15 @@ import {
   startOfWeek,
   toDateKey,
 } from '../lib/time';
-import { billedMinutes, entryAmount, formatMoney, isRetainer, resolveRate, sumTotals } from '../lib/money';
+import {
+  billedMinutes,
+  entryAmount,
+  formatMoney,
+  isFixedPrice,
+  isRetainer,
+  resolveRate,
+  sumTotals,
+} from '../lib/money';
 import { useClientMap, useProjectMap } from '../hooks/useData';
 import { buildCsv, downloadFile } from '../lib/csv';
 import { EntryModal } from './EntryModal';
@@ -107,6 +115,7 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
   interface GroupRow {
     projectName: string;
     color: string;
+    fixed: boolean;
     minutes: number;
     billableMinutes: number;
     amount: number;
@@ -145,6 +154,7 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
         row = {
           projectName: project?.name ?? 'Unknown project',
           color: project?.color ?? 'var(--border)',
+          fixed: isFixedPrice(project),
           minutes: 0,
           billableMinutes: 0,
           amount: 0,
@@ -173,7 +183,8 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
 
   const hasGroups = clientGroups.length > 0;
   const hasRetainerToBill = clientGroups.some((g) => g.retainer);
-  const canInvoice = totals.amount > 0 || hasRetainerToBill;
+  const hasFixedToBill = clientGroups.some((g) => g.projects.some((p) => p.fixed));
+  const canInvoice = totals.amount > 0 || hasRetainerToBill || hasFixedToBill;
 
   /* -------------------------------- CSV export ------------------------------ */
 
@@ -366,6 +377,8 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
                       <td className="num">
                         {g.retainer ? (
                           <span className="muted">retainer</span>
+                        ) : p.fixed ? (
+                          <span className="muted">fixed</span>
                         ) : (
                           formatMoney(p.amount, settings.currency)
                         )}
@@ -431,11 +444,15 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
                       {!e.billable && <span className="entry-nonbill"> NB</span>}
                     </td>
                     <td className="num">
-                      {isRetainer(client)
-                        ? <span className="muted">retainer</span>
-                        : amount > 0
-                          ? formatMoney(amount, settings.currency)
-                          : '—'}
+                      {isRetainer(client) ? (
+                        <span className="muted">retainer</span>
+                      ) : isFixedPrice(project) ? (
+                        <span className="muted">fixed</span>
+                      ) : amount > 0 ? (
+                        formatMoney(amount, settings.currency)
+                      ) : (
+                        '—'
+                      )}
                     </td>
                   </tr>
                 );
@@ -462,6 +479,7 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
           clientById={clientById}
           from={from}
           to={to}
+          initialClientId={clientFilter || undefined}
           onClose={() => setShowInvoice(false)}
         />
       )}

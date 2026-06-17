@@ -1485,6 +1485,13 @@ h2 {
   margin-left: 6px;
 }
 
+.tag-fixed {
+  color: #0d9488;
+  background: color-mix(in srgb, #14b8a6 16%, transparent);
+  border-color: transparent;
+  margin-left: 6px;
+}
+
 /* segmented toggle (e.g. Hourly / Retainer billing mode) */
 .segmented {
   display: inline-flex;
@@ -2089,6 +2096,95 @@ select:focus,
   border-bottom: none;
 }
 
+/* editable invoice (client picker + line editing) */
+.invoice-client-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #e7e9f2;
+}
+
+.invoice-client-pick select {
+  font-size: 13px;
+  padding: 5px 8px;
+}
+
+.invoice-edit-table td {
+  padding: 4px 12px;
+}
+
+.invoice-line-input {
+  width: 100%;
+  font: inherit;
+  font-size: 14px;
+  color: #1a1d2b;
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed #d2d6e1;
+  border-radius: 0;
+  padding: 6px 2px;
+}
+
+.invoice-line-input:focus {
+  outline: none;
+  border-bottom-color: #4f46e5;
+  box-shadow: none;
+}
+
+.invoice-amount-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.invoice-cur {
+  color: #646b80;
+  font-size: 13px;
+}
+
+.invoice-amount-input {
+  width: 90px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.invoice-line-del {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: #9aa1b2;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.invoice-line-del:hover {
+  background: #fdecec;
+  color: #dc2626;
+}
+
+.invoice-add-line {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4f46e5;
+  background: transparent;
+  border: 1px dashed #d2d6e1;
+  border-radius: 8px;
+  padding: 7px 12px;
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+.invoice-add-line:hover {
+  background: #f5f6fb;
+}
+
 .invoice-total {
   display: flex;
   justify-content: space-between;
@@ -2175,7 +2271,21 @@ select:focus,
     padding: 0;
   }
 
-  .invoice-notes textarea {
-    border-color: transparent;
+  .invoice-notes textarea,
+  .invoice-line-input {
+    border-color: transparent !important;
+  }
+
+  /* Editing-only controls never print. */
+  .invoice-edit-only {
+    display: none !important;
+  }
+
+  .invoice-line-del {
+    visibility: hidden !important;
+  }
+
+  .invoice-edit-table td {
+    padding: 8px 12px;
   }
 }

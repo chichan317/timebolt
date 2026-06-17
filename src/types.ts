@@ -30,6 +30,12 @@ export interface Project {
   color: string;
   /** Overrides the client rate when set. Null = inherit client rate. */
   hourlyRate: number | null;
+  /**
+   * Flat price for the whole project. When set (> 0) the project is billed this
+   * fixed amount and its time is tracked but never billed hourly — see
+   * `isFixedPrice`. Null = hourly.
+   */
+  fixedPrice?: number | null;
   /** New entries on this project default to this billable flag. */
   billableByDefault: boolean;
   archived: boolean;

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { clientUsage, db, deleteClientCascade, deleteProjectCascade, projectUsage, uid } from '../db';
 import type { Client, Project, Settings } from '../types';
 import { PROJECT_COLORS } from '../types';
-import { formatMoney, isRetainer } from '../lib/money';
+import { formatMoney, isFixedPrice, isRetainer } from '../lib/money';
 import { ConfirmDialog, EmptyState, Icon, Modal, useToast } from './ui';
 
 interface ClientsProps {
@@ -219,6 +219,10 @@ function ProjectModal({
     project?.color ?? PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)],
   );
   const [rate, setRate] = useState(project?.hourlyRate?.toString() ?? '');
+  const [mode, setMode] = useState<'hourly' | 'fixed'>(
+    isFixedPrice(project ?? undefined) ? 'fixed' : 'hourly',
+  );
+  const [fixedPrice, setFixedPrice] = useState(project?.fixedPrice?.toString() ?? '');
   const [billableByDefault, setBillableByDefault] = useState(project?.billableByDefault ?? true);
   const [error, setError] = useState<string | null>(null);
 
@@ -228,17 +232,30 @@ function ProjectModal({
       setError('Give the project a name.');
       return;
     }
-    const parsedRate = rate.trim() === '' ? null : Number(rate);
-    if (parsedRate !== null && (!Number.isFinite(parsedRate) || parsedRate < 0)) {
-      setError('The rate must be a positive number (or empty to inherit the client rate).');
-      return;
+    let hourlyRate: number | null = null;
+    let fixed: number | null = null;
+    if (mode === 'fixed') {
+      const parsed = fixedPrice.trim() === '' ? null : Number(fixedPrice);
+      if (parsed === null || !Number.isFinite(parsed) || parsed <= 0) {
+        setError('Enter the fixed project price (a positive number).');
+        return;
+      }
+      fixed = parsed;
+    } else {
+      const parsed = rate.trim() === '' ? null : Number(rate);
+      if (parsed !== null && (!Number.isFinite(parsed) || parsed < 0)) {
+        setError('The rate must be a positive number (or empty to inherit the client rate).');
+        return;
+      }
+      hourlyRate = parsed;
     }
     await db.projects.put({
       id: project?.id ?? uid(),
       clientId: owner,
       name: trimmed,
       color,
-      hourlyRate: parsedRate,
+      hourlyRate,
+      fixedPrice: fixed,
       billableByDefault,
       archived: project?.archived ?? false,
       createdAt: project?.createdAt ?? Date.now(),
@@ -307,17 +324,53 @@ function ProjectModal({
             ))}
           </div>
         </div>
-        <label className="field">
-          <span>Hourly rate (overrides client rate)</span>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={rate}
-            onChange={(e) => setRate(e.target.value)}
-            placeholder="Leave empty to inherit"
-          />
-        </label>
+        <div className="field">
+          <span>Billing</span>
+          <div className="segmented">
+            <button
+              type="button"
+              className={mode === 'hourly' ? 'seg-active' : ''}
+              onClick={() => setMode('hourly')}
+            >
+              Hourly
+            </button>
+            <button
+              type="button"
+              className={mode === 'fixed' ? 'seg-active' : ''}
+              onClick={() => setMode('fixed')}
+            >
+              Fixed price
+            </button>
+          </div>
+        </div>
+        {mode === 'hourly' ? (
+          <label className="field">
+            <span>Hourly rate (overrides client rate)</span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={rate}
+              onChange={(e) => setRate(e.target.value)}
+              placeholder="Leave empty to inherit"
+            />
+          </label>
+        ) : (
+          <label className="field">
+            <span>Fixed project price</span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={fixedPrice}
+              onChange={(e) => setFixedPrice(e.target.value)}
+              placeholder="e.g. 1500"
+            />
+            <span className="field-hint">
+              Time is still tracked, but this project is billed this flat amount — not by the hour.
+            </span>
+          </label>
+        )}
         <label className="check-field">
           <input
             type="checkbox"
@@ -399,13 +452,16 @@ export function Clients({ settings, clients, projects }: ClientsProps) {
       <span className="bar-dot" style={{ background: project.color }} />
       <span className="project-name">
         {project.name}
+        {isFixedPrice(project) && <span className="tag tag-fixed">fixed</span>}
         {project.archived && <span className="tag">archived</span>}
         {!project.billableByDefault && <span className="tag">non-billable</span>}
       </span>
       <span className="project-rate">
-        {project.hourlyRate !== null
-          ? `${formatMoney(project.hourlyRate, settings.currency)}/h`
-          : 'inherits'}
+        {isFixedPrice(project)
+          ? `${formatMoney(project.fixedPrice ?? 0, settings.currency)} fixed`
+          : project.hourlyRate !== null
+            ? `${formatMoney(project.hourlyRate, settings.currency)}/h`
+            : 'inherits'}
       </span>
       <span className="row-actions">
         <button

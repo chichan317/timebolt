@@ -1,6 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { uid } from '../db';
 import type { Client, Project, Settings, TimeEntry } from '../types';
-import { billedMinutes, entryAmount, formatMoney, isRetainer, resolveRate } from '../lib/money';
+import {
+  billedMinutes,
+  entryAmount,
+  formatMoney,
+  isFixedPrice,
+  isRetainer,
+  resolveRate,
+} from '../lib/money';
 import { shortDateLabel } from '../lib/time';
 import { BoltIcon, Icon } from './ui';
 
@@ -12,35 +20,33 @@ interface InvoiceProps {
   clientById: Map<string, Client>;
   from: string;
   to: string;
+  /** Pre-select this client if it has work in range (the Reports client filter). */
+  initialClientId?: string;
   onClose: () => void;
 }
 
-interface LineItem {
-  projectName: string;
-  /** Billed (rounded) minutes for billable work only. */
-  billedMin: number;
-  rate: number;
-  amount: number;
-}
-
-interface ClientSection {
-  clientId: string;
-  clientName: string;
-  /** Retainer clients are billed one fixed line instead of hourly items. */
-  retainer: boolean;
-  lines: LineItem[];
-  amount: number;
+/** An editable invoice line. `amount` is a string so it can be typed freely. */
+interface Line {
+  id: string;
+  description: string;
+  amount: string;
 }
 
 /** Hours shown on an invoice are decimal (2.50h), the billing convention. */
-function hours(min: number): string {
+function hoursStr(min: number): string {
   return (min / 60).toFixed(2);
 }
 
+function currencySymbol(currency: string): string {
+  const sym = formatMoney(0, currency).replace(/[\d.,\s]/g, '');
+  return sym || currency;
+}
+
 /**
- * A print-friendly invoice built from the current Reports filters. Only
- * billable entries are billed. Use the browser's print dialog to save a PDF —
- * no PDF dependency, fully local.
+ * A print-friendly invoice for a single client, with editable lines. Lines are
+ * seeded from the client's billable work (hourly projects, a retainer, or
+ * fixed-price projects) and can be edited, removed, or added to before printing.
+ * Use the browser's print dialog to save a PDF — no PDF dependency.
  */
 export function Invoice({
   settings,
@@ -49,11 +55,83 @@ export function Invoice({
   clientById,
   from,
   to,
+  initialClientId,
   onClose,
 }: InvoiceProps) {
   const [notes, setNotes] = useState('');
   const business = settings.business;
   const hasBusiness = Boolean(business?.name.trim());
+  const symbol = currencySymbol(settings.currency);
+
+  const clientsWithWork = useMemo(() => {
+    const ids = new Set<string>();
+    for (const e of entries) {
+      const p = projectById.get(e.projectId);
+      if (p) ids.add(p.clientId);
+    }
+    return [...ids]
+      .map((id) => clientById.get(id))
+      .filter((c): c is Client => Boolean(c))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [entries, projectById, clientById]);
+
+  const [clientId, setClientId] = useState(() => {
+    if (initialClientId && clientsWithWork.some((c) => c.id === initialClientId)) {
+      return initialClientId;
+    }
+    return clientsWithWork[0]?.id ?? '';
+  });
+  const client = clientById.get(clientId);
+
+  const seedLines = useCallback(
+    (cid: string): Line[] => {
+      const c = clientById.get(cid);
+      if (!c) return [];
+      if (isRetainer(c)) {
+        return [
+          { id: uid(), description: 'Monthly retainer', amount: (c.retainerAmount ?? 0).toFixed(2) },
+        ];
+      }
+      const byProject = new Map<string, { project: Project; billedMin: number; amount: number }>();
+      for (const e of entries) {
+        const p = projectById.get(e.projectId);
+        if (!p || p.clientId !== cid) continue;
+        const cur = byProject.get(p.id) ?? { project: p, billedMin: 0, amount: 0 };
+        if (isFixedPrice(p)) {
+          cur.amount = p.fixedPrice ?? 0;
+        } else if (e.billable) {
+          cur.billedMin += billedMinutes(e, settings);
+          cur.amount += entryAmount(e, resolveRate(p, c), settings);
+        }
+        byProject.set(p.id, cur);
+      }
+      const lines: Line[] = [];
+      for (const { project, billedMin, amount } of byProject.values()) {
+        if (isFixedPrice(project)) {
+          lines.push({
+            id: uid(),
+            description: `${project.name} (fixed price)`,
+            amount: amount.toFixed(2),
+          });
+        } else if (amount > 0) {
+          const rate = resolveRate(project, c);
+          lines.push({
+            id: uid(),
+            description: `${project.name} — ${hoursStr(billedMin)} h @ ${formatMoney(rate, settings.currency)}/h`,
+            amount: amount.toFixed(2),
+          });
+        }
+      }
+      lines.sort((a, b) => a.description.localeCompare(b.description));
+      return lines;
+    },
+    [entries, projectById, clientById, settings],
+  );
+
+  const [lines, setLines] = useState<Line[]>(() => seedLines(clientId));
+  useEffect(() => {
+    setLines(seedLines(clientId));
+  }, [clientId, seedLines]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -63,62 +141,14 @@ export function Invoice({
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const sections = useMemo<ClientSection[]>(() => {
-    const byClient = new Map<string, ClientSection>();
-    const ensure = (clientId: string, name: string, retainer: boolean): ClientSection => {
-      let section = byClient.get(clientId);
-      if (!section) {
-        section = { clientId, clientName: name, retainer, lines: [], amount: 0 };
-        byClient.set(clientId, section);
-      }
-      return section;
-    };
-    for (const e of entries) {
-      const project = projectById.get(e.projectId);
-      const client = project ? clientById.get(project.clientId) : undefined;
-      const clientId = client?.id ?? 'unknown';
-
-      // Retainer clients: one fixed line of the monthly amount, billed once,
-      // regardless of how many entries fall in the range.
-      if (isRetainer(client)) {
-        const section = ensure(clientId, client?.name ?? 'Unknown client', true);
-        if (section.lines.length === 0) {
-          const amount = client?.retainerAmount ?? 0;
-          section.lines.push({ projectName: 'Monthly retainer', billedMin: 0, rate: 0, amount });
-          section.amount = amount;
-        }
-        continue;
-      }
-
-      // Hourly clients: bill billable entries by the hour.
-      if (!e.billable) continue;
-      const amount = entryAmount(e, resolveRate(project, client), settings);
-      if (amount <= 0) continue;
-      const section = ensure(clientId, client?.name ?? 'Unknown client', false);
-      const name = project?.name ?? 'Unknown project';
-      let line = section.lines.find((l) => l.projectName === name);
-      if (!line) {
-        line = { projectName: name, billedMin: 0, rate: resolveRate(project, client), amount: 0 };
-        section.lines.push(line);
-      }
-      line.billedMin += billedMinutes(e, settings);
-      line.amount += amount;
-      section.amount += amount;
-    }
-    const list = [...byClient.values()].sort((a, b) => a.clientName.localeCompare(b.clientName));
-    for (const s of list) {
-      if (!s.retainer) s.lines.sort((a, b) => a.projectName.localeCompare(b.projectName));
-    }
-    return list;
-  }, [entries, projectById, clientById, settings]);
-
-  const grandTotal = sections.reduce((sum, s) => sum + s.amount, 0);
+  const total = lines.reduce((sum, l) => sum + (parseFloat(l.amount) || 0), 0);
   const issueDate = new Date().toISOString().slice(0, 10);
   const invoiceNumber = `INV-${issueDate.replace(/-/g, '')}`;
-  const billTo =
-    sections.length === 1 ? sections[0].clientName : `${sections.length} clients`;
-  const billClient =
-    sections.length === 1 ? clientById.get(sections[0].clientId) : undefined;
+
+  const editLine = (id: string, patch: Partial<Line>) =>
+    setLines((ls) => ls.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+  const addLine = () => setLines((ls) => [...ls, { id: uid(), description: '', amount: '0.00' }]);
+  const removeLine = (id: string) => setLines((ls) => ls.filter((l) => l.id !== id));
 
   return (
     <div className="invoice-overlay">
@@ -126,6 +156,18 @@ export function Invoice({
         <button className="btn" onClick={onClose} type="button">
           <Icon name="x" size={15} /> Close
         </button>
+        {clientsWithWork.length > 0 && (
+          <label className="invoice-client-pick">
+            Bill
+            <select value={clientId} onChange={(e) => setClientId(e.target.value)}>
+              {clientsWithWork.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <span className="invoice-hint">Use “Save as PDF” in the print dialog to export.</span>
         <button className="btn btn-primary btn-icon" onClick={() => window.print()} type="button">
           Print / Save PDF
@@ -176,73 +218,73 @@ export function Invoice({
 
         <div className="invoice-billto">
           <span className="invoice-label">Bill to</span>
-          <span className="invoice-client">{billTo}</span>
-          {billClient?.abn && <span className="invoice-billto-line">ABN {billClient.abn}</span>}
-          {billClient?.address && (
-            <span className="invoice-billto-line invoice-multiline">{billClient.address}</span>
+          <span className="invoice-client">{client?.name ?? '—'}</span>
+          {client?.abn && <span className="invoice-billto-line">ABN {client.abn}</span>}
+          {client?.address && (
+            <span className="invoice-billto-line invoice-multiline">{client.address}</span>
           )}
-          {billClient?.email && <span className="invoice-billto-line">{billClient.email}</span>}
+          {client?.email && <span className="invoice-billto-line">{client.email}</span>}
         </div>
 
-        {sections.length === 0 ? (
-          <p className="muted">No billable entries in this range. Adjust the filters and try again.</p>
+        {clientsWithWork.length === 0 ? (
+          <p className="muted">No billable work in this range. Adjust the filters and try again.</p>
         ) : (
-          sections.map((s) => (
-            <section key={s.clientId} className="invoice-section">
-              {sections.length > 1 && <h2 className="invoice-section-title">{s.clientName}</h2>}
-              {s.retainer ? (
-                <table className="invoice-table">
-                  <thead>
-                    <tr>
-                      <th>Description</th>
-                      <th className="num">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>Monthly retainer</td>
-                      <td className="num">{formatMoney(s.amount, settings.currency)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              ) : (
-                <table className="invoice-table">
-                  <thead>
-                    <tr>
-                      <th>Project</th>
-                      <th className="num">Hours</th>
-                      <th className="num">Rate</th>
-                      <th className="num">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {s.lines.map((l) => (
-                      <tr key={l.projectName}>
-                        <td>{l.projectName}</td>
-                        <td className="num">{hours(l.billedMin)}</td>
-                        <td className="num">{formatMoney(l.rate, settings.currency)}</td>
-                        <td className="num">{formatMoney(l.amount, settings.currency)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  {sections.length > 1 && (
-                    <tfoot>
-                      <tr>
-                        <td colSpan={3}>Subtotal — {s.clientName}</td>
-                        <td className="num">{formatMoney(s.amount, settings.currency)}</td>
-                      </tr>
-                    </tfoot>
-                  )}
-                </table>
-              )}
-            </section>
-          ))
+          <>
+            <table className="invoice-table invoice-edit-table">
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th className="num">Amount</th>
+                  <th className="invoice-edit-only" aria-hidden="true" />
+                </tr>
+              </thead>
+              <tbody>
+                {lines.map((l) => (
+                  <tr key={l.id}>
+                    <td>
+                      <input
+                        className="invoice-line-input"
+                        value={l.description}
+                        onChange={(e) => editLine(l.id, { description: e.target.value })}
+                        placeholder="Description"
+                        aria-label="Line description"
+                      />
+                    </td>
+                    <td className="num invoice-amount-cell">
+                      <span className="invoice-cur">{symbol}</span>
+                      <input
+                        className="invoice-line-input invoice-amount-input"
+                        value={l.amount}
+                        inputMode="decimal"
+                        onChange={(e) => editLine(l.id, { amount: e.target.value })}
+                        aria-label="Line amount"
+                      />
+                    </td>
+                    <td className="invoice-edit-only">
+                      <button
+                        className="invoice-line-del"
+                        onClick={() => removeLine(l.id)}
+                        aria-label="Remove line"
+                        title="Remove line"
+                        type="button"
+                      >
+                        <Icon name="x" size={13} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button className="invoice-add-line invoice-edit-only" onClick={addLine} type="button">
+              + Add line
+            </button>
+          </>
         )}
 
-        {sections.length > 0 && (
+        {clientsWithWork.length > 0 && (
           <div className="invoice-total">
             <span>Total due</span>
-            <span className="invoice-total-amount">{formatMoney(grandTotal, settings.currency)}</span>
+            <span className="invoice-total-amount">{formatMoney(total, settings.currency)}</span>
           </div>
         )}
 
