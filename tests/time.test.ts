@@ -110,4 +110,12 @@ eq(wallTimeToUtc('2026-06-18', 600, 'America/Bogota'), Date.UTC(2026, 5, 18, 15,
 // Round-trip: the instant reads back as 10:00 (600 min) local.
 eq(localMinutesOfDay(wallTimeToUtc('2026-06-18', 600, 'Australia/Adelaide'), 'Australia/Adelaide'), 600, 'tz: round-trip minutes');
 
+// Adelaide DST transition days 2026 (ends Sun 5 Apr, starts Sun 4 Oct).
+// Fall-back: 01:30 is still ACDT (+10:30); 03:30 is ACST (+9:30).
+eq(wallTimeToUtc('2026-04-05', 90, 'Australia/Adelaide'), Date.UTC(2026, 3, 4, 15, 0), 'tz: Adelaide 5 Apr 01:30 +10:30');
+eq(wallTimeToUtc('2026-04-05', 210, 'Australia/Adelaide'), Date.UTC(2026, 3, 4, 18, 0), 'tz: Adelaide 5 Apr 03:30 +9:30');
+// Spring-forward: 01:30 is ACST (+9:30); 03:30 is ACDT (+10:30).
+eq(wallTimeToUtc('2026-10-04', 90, 'Australia/Adelaide'), Date.UTC(2026, 9, 3, 16, 0), 'tz: Adelaide 4 Oct 01:30 +9:30');
+eq(wallTimeToUtc('2026-10-04', 210, 'Australia/Adelaide'), Date.UTC(2026, 9, 3, 17, 0), 'tz: Adelaide 4 Oct 03:30 +10:30');
+
 console.log('done');
