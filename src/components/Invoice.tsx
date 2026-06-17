@@ -6,6 +6,7 @@ import {
   entryAmount,
   formatMoney,
   isFixedPrice,
+  isNoCharge,
   isRetainer,
   resolveRate,
 } from '../lib/money';
@@ -71,7 +72,7 @@ export function Invoice({
     }
     return [...ids]
       .map((id) => clientById.get(id))
-      .filter((c): c is Client => Boolean(c))
+      .filter((c): c is Client => Boolean(c) && !isNoCharge(c))
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [entries, projectById, clientById]);
 

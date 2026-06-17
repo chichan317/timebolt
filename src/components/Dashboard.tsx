@@ -11,7 +11,15 @@ import {
   todayKey,
   addDays,
 } from '../lib/time';
-import { entryAmount, formatMoney, isFixedPrice, isRetainer, resolveRate, sumTotals } from '../lib/money';
+import {
+  entryAmount,
+  formatMoney,
+  isFixedPrice,
+  isNoCharge,
+  isRetainer,
+  resolveRate,
+  sumTotals,
+} from '../lib/money';
 import { useClientMap, useProjectMap } from '../hooks/useData';
 import { Donut, type DonutSlice } from './Donut';
 
@@ -145,6 +153,8 @@ export function Dashboard({ settings, clients, projects }: DashboardProps) {
                         {formatMinutes(slice.minutes, settings.timeFormat)}
                         {isRetainer(slice.client) ? (
                           <span className="tag tag-retainer">retainer</span>
+                        ) : isNoCharge(slice.client) ? (
+                          <span className="tag tag-nocharge">no charge</span>
                         ) : isFixedPrice(slice.project) ? (
                           <span className="tag tag-fixed">fixed</span>
                         ) : (

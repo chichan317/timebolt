@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { clientUsage, db, deleteClientCascade, deleteProjectCascade, projectUsage, uid } from '../db';
 import type { Client, Project, Settings } from '../types';
 import { PROJECT_COLORS } from '../types';
-import { formatMoney, isFixedPrice, isRetainer } from '../lib/money';
+import { formatMoney, isFixedPrice, isNoCharge, isRetainer } from '../lib/money';
 import { ConfirmDialog, EmptyState, Icon, Modal, useToast } from './ui';
 
 interface ClientsProps {
@@ -33,8 +33,12 @@ function ClientModal({
 }) {
   const toast = useToast();
   const [name, setName] = useState(client?.name ?? '');
-  const [mode, setMode] = useState<'hourly' | 'retainer'>(
-    isRetainer(client ?? undefined) ? 'retainer' : 'hourly',
+  const [mode, setMode] = useState<'hourly' | 'retainer' | 'free'>(
+    isNoCharge(client ?? undefined)
+      ? 'free'
+      : isRetainer(client ?? undefined)
+        ? 'retainer'
+        : 'hourly',
   );
   const [rate, setRate] = useState(client?.hourlyRate?.toString() ?? '');
   const [retainer, setRetainer] = useState(client?.retainerAmount?.toString() ?? '');
@@ -51,6 +55,7 @@ function ClientModal({
     }
     let hourlyRate: number | null = null;
     let retainerAmount: number | null = null;
+    let nonBillable = false;
     if (mode === 'retainer') {
       const parsed = retainer.trim() === '' ? null : Number(retainer);
       if (parsed === null || !Number.isFinite(parsed) || parsed <= 0) {
@@ -58,6 +63,8 @@ function ClientModal({
         return;
       }
       retainerAmount = parsed;
+    } else if (mode === 'free') {
+      nonBillable = true;
     } else {
       const parsed = rate.trim() === '' ? null : Number(rate);
       if (parsed !== null && (!Number.isFinite(parsed) || parsed < 0)) {
@@ -74,6 +81,7 @@ function ClientModal({
       abn: abn.trim(),
       hourlyRate,
       retainerAmount,
+      nonBillable,
       archived: client?.archived ?? false,
       createdAt: client?.createdAt ?? Date.now(),
     });
@@ -129,11 +137,18 @@ function ClientModal({
               className={mode === 'retainer' ? 'seg-active' : ''}
               onClick={() => setMode('retainer')}
             >
-              Retainer (fixed monthly)
+              Retainer
+            </button>
+            <button
+              type="button"
+              className={mode === 'free' ? 'seg-active' : ''}
+              onClick={() => setMode('free')}
+            >
+              No charge
             </button>
           </div>
         </div>
-        {mode === 'hourly' ? (
+        {mode === 'hourly' && (
           <label className="field">
             <span>Default hourly rate</span>
             <input
@@ -145,7 +160,8 @@ function ClientModal({
               placeholder="e.g. 120 (optional)"
             />
           </label>
-        ) : (
+        )}
+        {mode === 'retainer' && (
           <label className="field">
             <span>Monthly retainer amount</span>
             <input
@@ -161,6 +177,12 @@ function ClientModal({
               Time is still tracked, but this client is billed this fixed amount — not by the hour.
             </span>
           </label>
+        )}
+        {mode === 'free' && (
+          <p className="field-hint field-hint-block">
+            Time is tracked for your own records, but this client is never billed and won't appear on
+            invoices.
+          </p>
         )}
 
         <p className="field-section-label">Billing details (shown on invoices)</p>
@@ -495,14 +517,17 @@ export function Clients({ settings, clients, projects }: ClientsProps) {
           <h2>
             {client.name}
             {isRetainer(client) && <span className="tag tag-retainer">retainer</span>}
+            {isNoCharge(client) && <span className="tag tag-nocharge">no charge</span>}
             {client.archived && <span className="tag">archived</span>}
           </h2>
           <span className="client-rate">
-            {isRetainer(client)
-              ? `${formatMoney(client.retainerAmount ?? 0, settings.currency)}/mo retainer`
-              : client.hourlyRate !== null
-                ? `${formatMoney(client.hourlyRate, settings.currency)}/h default`
-                : 'no default rate'}
+            {isNoCharge(client)
+              ? 'no charge'
+              : isRetainer(client)
+                ? `${formatMoney(client.retainerAmount ?? 0, settings.currency)}/mo retainer`
+                : client.hourlyRate !== null
+                  ? `${formatMoney(client.hourlyRate, settings.currency)}/h default`
+                  : 'no default rate'}
           </span>
           <span className="row-actions">
             <button

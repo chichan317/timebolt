@@ -1,5 +1,5 @@
 import { parseDuration, roundMinutes, startOfWeek, weekDays, toDateKey, formatMinutes } from '../src/lib/time';
-import { entryAmount, isFixedPrice, isRetainer, resolveRate } from '../src/lib/money';
+import { entryAmount, isFixedPrice, isNoCharge, isRetainer, resolveRate } from '../src/lib/money';
 import { decideSync } from '../src/lib/sync';
 import { wallTimeToUtc, localMinutesOfDay } from '../src/lib/clock';
 import type { Client, Project, Settings, TimeEntry } from '../src/types';
@@ -92,6 +92,14 @@ eq(isFixedPrice(proj(120)), false, 'isFixedPrice: false for hourly project');
 eq(isFixedPrice({ ...proj(null), fixedPrice: 0 }), false, 'isFixedPrice: false when price 0');
 // fixed-price wins over the hourly rate -> resolveRate is 0
 eq(resolveRate(fixedProj, client), 0, 'fixed price: rate forced to 0');
+
+// --- no-charge clients: tracked but never billed ---
+const freeClient: Client = { ...client, nonBillable: true };
+eq(isNoCharge(freeClient), true, 'isNoCharge: true when nonBillable');
+eq(isNoCharge(client), false, 'isNoCharge: false for normal client');
+eq(isNoCharge(undefined), false, 'isNoCharge: false for undefined');
+// no-charge forces rate to 0 even with an hourly rate set
+eq(resolveRate(proj(150), freeClient), 0, 'no charge: rate forced to 0');
 
 // --- sync decision logic ---
 const decide = (o: Partial<Parameters<typeof decideSync>[0]>) =>

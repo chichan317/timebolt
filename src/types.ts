@@ -17,6 +17,8 @@ export interface Client {
    * `isRetainer`. Null = normal hourly client.
    */
   retainerAmount: number | null;
+  /** A client you never bill — time is tracked only. See `isNoCharge`. */
+  nonBillable?: boolean;
   archived: boolean;
   createdAt: number;
 }

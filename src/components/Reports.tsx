@@ -16,6 +16,7 @@ import {
   entryAmount,
   formatMoney,
   isFixedPrice,
+  isNoCharge,
   isRetainer,
   resolveRate,
   sumTotals,
@@ -125,6 +126,7 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
     clientId: string;
     clientName: string;
     retainer: boolean;
+    noCharge: boolean;
     projects: GroupRow[];
     minutes: number;
     billableMinutes: number;
@@ -143,6 +145,7 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
           clientId,
           clientName: client?.name ?? 'Unknown client',
           retainer: isRetainer(client),
+          noCharge: isNoCharge(client),
           projects: [],
           minutes: 0,
           billableMinutes: 0,
@@ -377,6 +380,8 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
                       <td className="num">
                         {g.retainer ? (
                           <span className="muted">retainer</span>
+                        ) : g.noCharge ? (
+                          <span className="muted">no charge</span>
                         ) : p.fixed ? (
                           <span className="muted">fixed</span>
                         ) : (
@@ -393,6 +398,8 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
                     <td className="num">
                       {g.retainer ? (
                         <span className="muted">retainer</span>
+                      ) : g.noCharge ? (
+                        <span className="muted">no charge</span>
                       ) : (
                         formatMoney(g.amount, settings.currency)
                       )}
@@ -446,6 +453,8 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
                     <td className="num">
                       {isRetainer(client) ? (
                         <span className="muted">retainer</span>
+                      ) : isNoCharge(client) ? (
+                        <span className="muted">no charge</span>
                       ) : isFixedPrice(project) ? (
                         <span className="muted">fixed</span>
                       ) : amount > 0 ? (
