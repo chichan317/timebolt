@@ -52,9 +52,10 @@ function send($code, $body) {
 }
 
 /**
- * Read the token. Primary: the X-Timebolt-Token header (survives FastCGI hosts
- * like SiteGround that strip Authorization). Fallbacks: Authorization: Bearer,
- * then a ?token= query param (last resort for awkward hosts).
+ * Read the token from the X-Timebolt-Token header (survives FastCGI hosts like
+ * SiteGround that strip Authorization), falling back to Authorization: Bearer.
+ * The token is never accepted from the query string — secrets in URLs leak into
+ * access logs, history and Referer headers.
  */
 function read_token() {
     $headers = function_exists('getallheaders') ? getallheaders() : [];
@@ -67,9 +68,11 @@ function read_token() {
     $auth = $_SERVER['HTTP_AUTHORIZATION'] ?? ($lower['authorization'] ?? '');
     if (stripos($auth, 'Bearer ') === 0) return trim(substr($auth, 7));
 
-    if (isset($_GET['token'])) return trim($_GET['token']);
     return '';
 }
+
+/** Hard cap on a pushed payload so a stray/abusive request can't fill the disk. */
+const MAX_PAYLOAD_BYTES = 8 * 1024 * 1024; // 8 MB — a personal dataset is tiny
 
 /** Read the stored document, or an empty one if nothing saved yet. */
 function read_doc() {
@@ -124,7 +127,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action === 'pull') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'push') {
-    $body = json_decode(file_get_contents('php://input'), true);
+    $input = file_get_contents('php://input');
+    if (strlen($input) > MAX_PAYLOAD_BYTES) {
+        send(413, ['error' => 'Payload too large.']);
+    }
+    $body = json_decode($input, true);
     if (!is_array($body) || !array_key_exists('payload', $body)) {
         send(400, ['error' => 'Missing payload.']);
     }

@@ -2,3 +2,6 @@ node_modules
 dist
 *.local
 .DS_Store
+
+# Sync server's generated data file (never commit a real dataset)
+*.store.php
