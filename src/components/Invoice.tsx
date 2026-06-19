@@ -81,9 +81,18 @@ export function Invoice({
 
   const clientsWithWork = useMemo(() => {
     const ids = new Set<string>();
+    // Clients with tracked time in the selected range.
     for (const e of entries) {
       const p = projectById.get(e.projectId);
       if (p) ids.add(p.clientId);
+    }
+    // Retainer clients can be invoiced without any tracked time.
+    for (const c of clientById.values()) {
+      if (!c.archived && isRetainer(c)) ids.add(c.id);
+    }
+    // Clients with a fixed-price project can be invoiced without tracked time.
+    for (const p of projectById.values()) {
+      if (!p.archived && isFixedPrice(p)) ids.add(p.clientId);
     }
     return [...ids]
       .map((id) => clientById.get(id))
@@ -119,6 +128,13 @@ export function Invoice({
           cur.amount += entryAmount(e, resolveRate(p, c), settings);
         }
         byProject.set(p.id, cur);
+      }
+      // Fixed-price projects are billed even with no time tracked in the range.
+      for (const p of projectById.values()) {
+        if (p.clientId !== cid || p.archived || !isFixedPrice(p)) continue;
+        if (!byProject.has(p.id)) {
+          byProject.set(p.id, { project: p, billedMin: 0, amount: p.fixedPrice ?? 0 });
+        }
       }
       const lines: Line[] = [];
       for (const { project, billedMin, amount } of byProject.values()) {

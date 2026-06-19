@@ -185,9 +185,12 @@ export function Reports({ settings, clients, projects }: ReportsProps) {
   }, [filtered, projectById, clientById, settings]);
 
   const hasGroups = clientGroups.length > 0;
-  const hasRetainerToBill = clientGroups.some((g) => g.retainer);
-  const hasFixedToBill = clientGroups.some((g) => g.projects.some((p) => p.fixed));
-  const canInvoice = totals.amount > 0 || hasRetainerToBill || hasFixedToBill;
+  // Hourly work needs time in range; retainer/fixed-price clients can be
+  // invoiced regardless, so the button is enabled whenever any exist.
+  const canInvoice =
+    totals.amount > 0 ||
+    clients.some((c) => !c.archived && isRetainer(c)) ||
+    projects.some((p) => !p.archived && isFixedPrice(p));
 
   /* -------------------------------- CSV export ------------------------------ */
 
