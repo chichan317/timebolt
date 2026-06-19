@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+} from 'react';
 import { uid } from '../db';
 import type { Client, Project, Settings, TimeEntry } from '../types';
 import {
@@ -41,6 +49,19 @@ function hoursStr(min: number): string {
 function currencySymbol(currency: string): string {
   const sym = formatMoney(0, currency).replace(/[\d.,\s]/g, '');
   return sym || currency;
+}
+
+/** A textarea that grows to fit its content, so long text is never clipped
+ *  (on screen or in print). Used for descriptions, addresses, payment, notes. */
+function AutoTextarea(props: ComponentProps<'textarea'>) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  });
+  return <textarea ref={ref} rows={1} {...props} />;
 }
 
 /**
@@ -226,13 +247,12 @@ export function Invoice({
                 placeholder="ABN"
                 aria-label="Your ABN"
               />
-              <textarea
+              <AutoTextarea
                 className="invoice-edit-text invoice-from-line"
                 value={bizAddress}
                 onChange={(e) => setBizAddress(e.target.value)}
                 placeholder="Address"
                 aria-label="Your address"
-                rows={2}
               />
               <input
                 className="invoice-edit-text invoice-from-line"
@@ -299,13 +319,12 @@ export function Invoice({
             placeholder="ABN"
             aria-label="Bill-to ABN"
           />
-          <textarea
+          <AutoTextarea
             className="invoice-edit-text invoice-billto-line"
             value={billAddress}
             onChange={(e) => setBillAddress(e.target.value)}
             placeholder="Address"
             aria-label="Bill-to address"
-            rows={2}
           />
           <input
             className="invoice-edit-text invoice-billto-line"
@@ -332,7 +351,7 @@ export function Invoice({
                 {lines.map((l) => (
                   <tr key={l.id}>
                     <td>
-                      <input
+                      <AutoTextarea
                         className="invoice-line-input"
                         value={l.description}
                         onChange={(e) => editLine(l.id, { description: e.target.value })}
@@ -380,23 +399,21 @@ export function Invoice({
 
         <label className="invoice-payment">
           <span className="invoice-label">Payment</span>
-          <textarea
+          <AutoTextarea
             className="invoice-edit-text"
             value={bizPayment}
             onChange={(e) => setBizPayment(e.target.value)}
             placeholder="Bank details / payment instructions"
             aria-label="Payment details"
-            rows={2}
           />
         </label>
 
         <label className="invoice-notes">
           <span className="invoice-label">Notes</span>
-          <textarea
+          <AutoTextarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Anything specific to this invoice… (optional)"
-            rows={2}
           />
         </label>
 

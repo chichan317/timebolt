@@ -2131,12 +2131,22 @@ select:focus,
   width: 100%;
   font: inherit;
   font-size: 14px;
+  line-height: 1.4;
   color: #1a1d2b;
   background: transparent;
   border: none;
   border-bottom: 1px dashed #d2d6e1;
   border-radius: 0;
   padding: 6px 2px;
+  display: block;
+  resize: none;
+  overflow: hidden;
+}
+
+/* The description field is an auto-growing textarea — wrap long text. */
+textarea.invoice-line-input {
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .invoice-line-input:focus {
@@ -2210,7 +2220,15 @@ select:focus,
   padding: 2px 1px;
   width: 100%;
   max-width: 100%;
-  resize: vertical;
+  resize: none;
+  overflow: hidden;
+}
+
+textarea.invoice-edit-text {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.4;
 }
 
 .invoice-edit-text:focus {
@@ -2265,7 +2283,9 @@ input.invoice-business-name {
   border: 1px solid #e3e6ee;
   border-radius: 8px;
   padding: 8px 10px;
-  resize: vertical;
+  resize: none;
+  overflow: hidden;
+  display: block;
   background: #fff;
 }
 
